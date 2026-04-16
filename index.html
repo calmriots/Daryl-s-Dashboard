@@ -614,10 +614,9 @@ function render(){
     {id:'dashboard',l:'Dashboard'},{id:'campaigns',l:'Campaigns'},{id:'tasks',l:'All tasks'},
     {id:'general',l:'General tasks'},{id:'pr',l:'PR / KOL'},{id:'dining',l:'Group dining'},
     {id:'tourism',l:'Tourism'},{id:'requests',l:'Requests'},{id:'results',l:'Results'},
-    {id:'archived',l:`Archived${archCount?` (${archCount})`:'`'}`},{id:'brief',l:'Brief generator'}
+    {id:'archived',l:'Archived'+(archCount?' ('+archCount+')':'')},{id:'brief',l:'Brief generator'}
   ];
-  // fix backtick typo in archived label
-  const fixedTabs=tabs.map(t=>t.id==='archived'?{id:'archived',l:`Archived${archCount?` (${archCount})`:''}`}:t);
+
   let v='';
   if(S.tab==='dashboard')v=rDash();
   else if(S.tab==='campaigns')v=rCamps();
@@ -627,7 +626,7 @@ function render(){
   else if(S.tab==='requests')v=rReqs();
   else if(S.tab==='results')v=rRes();
   else if(S.tab==='brief')v=rBrief();
-  document.getElementById('dash-content').innerHTML=`<nav class="tabs">${fixedTabs.map(t=>`<button class="tab${S.tab===t.id?' on':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</nav>${v}`;
+  document.getElementById('dash-content').innerHTML=`<nav class="tabs">${tabs.map(t=>`<button class="tab${S.tab===t.id?' on':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</nav>${v}`;
 }
 
 // Event handlers
@@ -679,15 +678,7 @@ window.readFile=async(inp)=>{const file=inp.files[0];if(!file)return;const ext=f
 window.addAI=async()=>{if(!S.addTxt.trim())return;S.addLoad=true;render();try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Campaign parser for 1-Arden Singapore. Venues: Arden Bar, Kaarla, Oumi, Sol and Luna. Team: ${S.team.join(', ')}. Today: 2026-04-15.\n\nParse into JSON only:\n{"id":"kebab","name":"Name","cats":["campaigns"],"venue":"All Venues","status":"planned","start":"YYYY-MM-DD","end":"YYYY-MM-DD","desc":"summary","link":"","color":"#185FA5","tasks":[{"id":"t-x","name":"Task","status":"not-started","who":["Daryl"],"due":"YYYY-MM-DD","comments":[],"cats":["campaigns"],"blk":"","archived":false}],"results":{"covers":"","promo":"","alac":"","notes":""}}\n\nBrief:\n${S.addTxt}`}]})});const d=await r.json();const camp=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());camp.tasks=sortByDue(camp.tasks);S.campaigns.push(camp);S.showAdd=false;S.addTxt='';S.tab='campaigns';saveToBin();}catch(e){alert('Could not parse brief.');}S.addLoad=false;render();};
 window.genBrief=async()=>{if(!S.briefTxt.trim())return;S.briefLoad=true;render();try{const cl=S.campaigns.map(c=>`- ${c.name} (${c.venue}, ${c.status}, ${pct(c)}% complete)`).join('\n');const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Assistant Marketing Manager, 1-Arden CapitaSpring Singapore. Venues: Arden Bar, Kaarla, Oumi, Sol and Luna. Today: 15 Apr 2026.\n\nCampaigns:\n${cl}\n\nFrom meeting notes, write a weekly brief: Campaign Status, Key Updates, Action Items, Upcoming Deadlines, Notes.\n\nNotes:\n${S.briefTxt}`}]})});const d=await r.json();S.briefOut=d.content[0].text;}catch(e){S.briefOut='Error generating brief.';}S.briefLoad=false;render();};
 
-function startPolling(){
-  if(pollTimer)clearInterval(pollTimer);
-  pollTimer=setInterval(async()=>{
-    if(saving)return;
-    const prev=JSON.stringify({c:S.campaigns,g:S.generalTasks,r:S.requests,t:S.team});
-    const ok=await loadFromBin(true);
-    if(ok){const next=JSON.stringify({c:S.campaigns,g:S.generalTasks,r:S.requests,t:S.team});if(prev!==next){showSync('Updated',1500);render();renderTeamList();}}
-  },30000);
-}
+
 document.addEventListener('visibilitychange',async()=>{
   if(!document.hidden&&BIN_KEY&&BIN_ID){const ok=await loadFromBin(true);if(ok){showSync('Refreshed',1500);render();}}
 });
