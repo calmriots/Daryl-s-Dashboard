@@ -215,6 +215,9 @@ function migrate(arr,isGen){
     if(!item.comments)item.comments=[];
     if(!item.venues){item.venues=item.venue?[item.venue]:['All Venues'];}
     if(item.image===undefined)item.image=null;
+    if(item.launchDate===undefined)item.launchDate='';
+    if(item.launchTBC===undefined)item.launchTBC=false;
+    if(item.archived===undefined)item.archived=false;
     item.comments=item.comments.map(c=>c.id?c:{id:uid(),name:c.a||c.name||'',text:c.t||c.text||'',date:c.d||c.date||'',editedDate:null});
     if(item.tasks)item.tasks=item.tasks.map(t=>{
       if(!t.cats)t.cats=t.cat?[t.cat]:['campaigns'];
@@ -239,7 +242,7 @@ async function loadFromBin(silent){
       S.generalTasks=migrate(rec.generalTasks||S.generalTasks,true);
       S.requests=rec.requests||S.requests;
       if(rec.team&&rec.team.length)S.team=rec.team;
-      if(rec.categories&&rec.categories.length)S.categories=rec.categories;
+      if(rec.categories&&rec.categories.length)S.categories=rec.categories.filter(c=>c.id!=='campaigns');
       if(!(S.openCamps instanceof Set))S.openCamps=new Set();
       return true;
     }
@@ -344,7 +347,7 @@ let S={
   briefTxt:'',briefOut:'',briefLoad:false,
   cDraft:{},aLE:null,
   addTF:null,atName:'',atWho:[],atDue:'',atCats:['campaigns'],agNotes:'',
-  editCamp:null,openCamps:new Set(),dragCampSrc:null,cName:'',editCom:null,editComText:'',editComName:'',
+  editCamp:null,openCamps:new Set(),dragCampSrc:null,dragSbSrc:null,sbMenu:null,fSortByDate:false,cName:'',editCom:null,editComText:'',editComName:'',
   newCamp:{name:'',venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns']},
   requests:[],rqF:{name:'',details:'',cid:'',who:[],due:'',by:''},rjC:{},
   team:['Daryl','Philicia','Zul','Keisha','Jit Seng'],
@@ -527,7 +530,7 @@ function cCard(c,_st){
   const isEditing=S.editCamp===c.id;
   const team=[...new Set(activeTasks.flatMap(t=>t.who))];
 
-  return '<div class="card cc" style="--col:'+c.color+';transition:opacity 0.15s" draggable="true" ondragstart="dragCampStart(\''+c.id+'\')" ondragover="dragCampOver(event,\''+c.id+'\')" ondrop="dragCampDrop(\''+c.id+'\')" ondragend="dragCampEnd()"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px"><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px">'+esc(c.name)+'</div><div style="font-size:11px;color:var(--muted)">'+esc((c.venues||[c.venue||'']).join(', '))+' · '+fd(c.start)+' – '+fd(c.end)+' · '+dls+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0">'+cBdg(c.status)+'<button onclick="S.editCamp=S.editCamp===\''+c.id+'\'?null:\''+c.id+'\';render()" style="font-size:11px;padding:2px 8px;color:var(--muted)">'+(isEditing?'Close':'Edit')+'</button>'+(showT?' <span style="font-size:12px;color:var(--muted)">&#9650;</span>':' <span style="font-size:12px;color:var(--muted)">&#9660;</span>')+'</div></div><div style="font-size:12px;color:#555;margin:6px 0 8px">'+esc(c.desc)+'</div>'+(campCats?'<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:2px">'+campCats+'</div>':'')+renderLinks(c)+'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Comments ('+(c.comments||[]).length+')</div>'+renderComments(c.comments||[],'campaign',c.id,null)+'</div>'+'<div class="prog"><div class="pf" style="width:'+pr+'%;background:'+c.color+'"></div></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.03em">'+done+'/'+activeTasks.length+' tasks · '+pr+'%'+(archivedCount?' · '+archivedCount+' archived':'')+'</span><div>'+team.map(a=>'<span class="chip">'+a+'</span>').join('')+'</div></div>'+(isEditing?campEditForm(c):'')+(showT?'<hr><div style="padding:0 0 4px">'+sortedTasks.map(t=>tRow(t,c.id,false)).join('')+addTForm(c.id,false)+'</div>':'')+'</div>';
+  return '<div class="card cc" style="--col:'+c.color+';transition:opacity 0.15s" draggable="true" ondragstart="dragCampStart(\''+c.id+'\')" ondragover="dragCampOver(event,\''+c.id+'\')" ondrop="dragCampDrop(\''+c.id+'\')" ondragend="dragCampEnd()"><div data-cid="'+c.id+'" onclick="window._hcc&&window._hcc(event,this.dataset.cid)" style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;cursor:pointer"><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px">'+esc(c.name)+'</div><div style="font-size:11px;color:var(--muted)">'+esc((c.venues||[c.venue||'']).join(', '))+' · '+(c.launchTBC?'Launch TBC · ':c.launchDate?'Launch '+fd(c.launchDate)+' · ':'')+fd(c.start)+' – '+fd(c.end)+' · '+dls+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0">'+cBdg(c.status)+'<button onclick="S.editCamp=S.editCamp===\''+c.id+'\'?null:\''+c.id+'\';render()" style="font-size:11px;padding:2px 8px;color:var(--muted)">'+(isEditing?'Close':'Edit')+'</button>'+(showT?' <span style="font-size:12px;color:var(--muted)">&#9650;</span>':' <span style="font-size:12px;color:var(--muted)">&#9660;</span>')+'</div></div><div style="font-size:12px;color:#555;margin:6px 0 8px">'+esc(c.desc)+'</div>'+(campCats?'<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:2px">'+campCats+'</div>':'')+renderLinks(c)+'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Comments ('+(c.comments||[]).length+')</div>'+renderComments(c.comments||[],'campaign',c.id,null)+'</div>'+'<div class="prog"><div class="pf" style="width:'+pr+'%;background:'+c.color+'"></div></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.03em">'+done+'/'+activeTasks.length+' tasks · '+pr+'%'+(archivedCount?' · '+archivedCount+' archived':'')+'</span><div>'+team.map(a=>'<span class="chip">'+a+'</span>').join('')+'</div></div>'+(isEditing?campEditForm(c):'')+(showT?'<hr><div style="padding:0 0 4px">'+sortedTasks.map(t=>tRow(t,c.id,false)).join('')+addTForm(c.id,false)+'</div>':'')+'</div>';
 }
 
 function buildAllTabs(){
@@ -584,12 +587,71 @@ function rDash(){
 }
 
 function rCamps(){
-  let f=S.campaigns;
-  if(S.fVenue!=='all')f=f.filter(c=>c.venue===S.fVenue);
-  const filterRow='<div class="fr"><select onchange="S.fVenue=this.value;render()" style="font-size:12px;padding:6px 8px;border:1px solid var(--bd2);border-radius:3px"><option value="all">All venues</option><option value="All Venues">Multi-venue</option><option value="Arden Bar">Arden Bar</option><option value="Kaarla">Kaarla</option><option value="Oumi">Oumi</option><option value="Sol and Luna">Sol and Luna</option></select><button onclick="S.showAdd=!S.showAdd;S.showManual=false;render()" style="'+(S.showAdd?'background:var(--black);color:#fff;border-color:var(--black)':'')+'">Brief parser ↗</button><button onclick="S.showManual=!S.showManual;S.showAdd=false;S.newCamp={name:\'\',venue:\'All Venues\',status:\'active\',start:\'\',end:\'\',desc:\'\',color:\'#C8131A\',cats:[\'campaigns\']};render()" style="'+(S.showManual?'background:var(--black);color:#fff;border-color:var(--black)':'')+'">Create manually</button></div>';
-  const briefPanel=S.showAdd?'<div class="ap"><div style="font-size:13px;font-weight:700;margin-bottom:6px">Add campaign from brief</div><div style="font-size:12px;color:var(--muted);margin-bottom:10px">Upload a document or paste text — Claude structures it into tasks, assignees, and dates.</div><div class="upbox"><span style="font-size:12px;color:var(--muted);white-space:nowrap">Upload</span><input type="file" accept=".txt,.md,.docx" onchange="readFile(this)" style="font-size:12px;flex:1"><span style="font-size:11px;color:var(--muted)">.txt .md .docx</span></div><textarea style="width:100%;min-height:100px;font-size:13px;padding:10px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical" placeholder="Or paste campaign brief here…" oninput="S.addTxt=this.value">'+esc(S.addTxt)+'</textarea><div style="display:flex;gap:8px;margin-top:10px"><button class="primary" onclick="addAI()" '+(S.addLoad?'disabled':'')+'>'+( S.addLoad?'Parsing…':'Parse and create campaign ↗')+'</button><button onclick="S.showAdd=false;S.addTxt=\'\';render()">Cancel</button></div></div>':'';
-  const manualPanel=S.showManual?newCampForm():'';
-  return filterRow+briefPanel+manualPanel+f.map(c=>cCard(c,true)).join('');
+  var activeCamps=S.campaigns.filter(c=>!c.archived);
+  var sortedCamps=S.fSortByDate
+    ? activeCamps.slice().sort((a,b)=>{
+        if(a.launchTBC&&!b.launchTBC)return -1;
+        if(!a.launchTBC&&b.launchTBC)return 1;
+        if(!a.launchDate&&!b.launchDate)return 0;
+        if(!a.launchDate)return 1;
+        if(!b.launchDate)return -1;
+        return new Date(a.launchDate)-new Date(b.launchDate);
+      })
+    : activeCamps;
+
+  var sbItems=sortedCamps.map((c,i)=>{
+    var isOpen=S.openCamps.has(c.id);
+    var ld=c.launchTBC?'TBC':c.launchDate?fd(c.launchDate):'';
+    var menuOpen=S.sbMenu===c.id;
+    return '<div style="border-bottom:1px solid var(--faint)">'
+      +'<div draggable="true" ondragstart="dragSbStart('+i+')" ondragover="dragSbOver(event,'+i+')" ondrop="dragSbDrop('+i+')" ondragend="S.dragSbSrc=null" style="display:flex;align-items:center;padding:8px 8px 8px 10px">'
+      +'<span style="font-size:12px;color:var(--muted);flex-shrink:0;margin-right:6px;user-select:none">&#9776;</span>'
+      +'<div onclick="scrollToCamp(\''+c.id+'\')" style="flex:1;cursor:pointer;min-width:0">'
+      +'<div style="font-size:12px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:'+(isOpen?'var(--red)':'var(--black)')+'">'+esc(c.name)+'</div>'
+      +(ld?'<div style="font-size:10px;color:var(--muted)">Launch: '+esc(ld)+'</div>':'')
+      +'</div>'
+      +'<div style="display:flex;gap:2px;flex-shrink:0;position:relative">'
+      +'<button onclick="toggleCampOpen(\''+c.id+'\')" style="font-size:10px;padding:2px 5px;color:var(--muted)" title="'+(isOpen?'Collapse':'Expand')+'">'+(isOpen?'&#9650;':'&#9660;')+'</button>'
+      +'<button onclick="event.stopPropagation();S.sbMenu=S.sbMenu===\''+c.id+'\'?null:\''+c.id+'\';render()" style="font-size:13px;padding:1px 5px;color:var(--muted)" title="More">&#8943;</button>'
+      +(menuOpen
+        ?'<div style="position:absolute;top:100%;right:0;background:white;border:1px solid var(--border);border-radius:3px;z-index:200;min-width:130px;box-shadow:0 4px 14px rgba(0,0,0,0.12)">'
+        +'<button onclick="S.editCamp=\''+c.id+'\';S.sbMenu=null;render()" style="display:block;width:100%;text-align:left;font-size:12px;padding:9px 14px;border:none;border-bottom:1px solid var(--faint)">&#9998; Edit</button>'
+        +'<button onclick="archiveCamp(\''+c.id+'\');S.sbMenu=null" style="display:block;width:100%;text-align:left;font-size:12px;padding:9px 14px;border:none;border-bottom:1px solid var(--faint);color:var(--muted)">Archive</button>'
+        +'<button onclick="deleteCamp(\''+c.id+'\');S.sbMenu=null" style="display:block;width:100%;text-align:left;font-size:12px;padding:9px 14px;border:none;color:var(--red)">&#10005; Delete</button>'
+        +'</div>'
+        :'')
+      +'</div></div></div>';
+  }).join('');
+
+  var byDateBtn='<button onclick="S.fSortByDate=!S.fSortByDate;render()" title="Sort by launch date" style="font-size:10px;padding:2px 8px;'+(S.fSortByDate?'background:var(--black);color:#fff;border-color:var(--black)':'')+'">By date</button>';
+  var createBtn='<button onclick="S.showManual=!S.showManual;S.showAdd=false;S.newCamp={name:\'\',venues:[\'All Venues\'],venue:\'All Venues\',status:\'active\',start:\'\',end:\'\',desc:\'\',color:\'#C8131A\',cats:[\'campaigns\'],launchDate:\'\',launchTBC:false};render()" style="width:100%;font-size:11px;margin-bottom:5px;'+(S.showManual?'background:var(--black);color:#fff;border-color:var(--black)':'')+'">+ Create</button>';
+  var briefBtn='<button onclick="S.showAdd=!S.showAdd;S.showManual=false;render()" style="width:100%;font-size:11px;'+(S.showAdd?'background:var(--black);color:#fff;border-color:var(--black)':'')+'">Brief parser &#8599;</button>';
+
+  var sidebar='<div style="width:210px;flex-shrink:0;border-right:1px solid var(--border);background:white;position:sticky;top:104px;max-height:calc(100vh - 108px);overflow-y:auto;overflow-x:visible">'
+    +'<div style="padding:12px 14px 10px;border-bottom:1px solid var(--faint)">'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
+    +'<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)">Campaigns</div>'
+    +byDateBtn
+    +'</div>'
+    +createBtn+briefBtn
+    +'</div>'
+    +sbItems
+    +'</div>';
+
+  var briefPanel=S.showAdd?'<div class="ap" style="margin-bottom:1.5rem">'
+    +'<div style="font-size:13px;font-weight:700;margin-bottom:6px">Add campaign from brief</div>'
+    +'<div class="upbox"><span style="font-size:12px;color:var(--muted);white-space:nowrap">Upload</span><input type="file" accept=".txt,.md,.docx" onchange="readFile(this)" style="font-size:12px;flex:1"><span style="font-size:11px;color:var(--muted)">.txt .md .docx</span></div>'
+    +'<textarea style="width:100%;min-height:100px;font-size:13px;padding:10px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical" placeholder="Paste campaign brief here\u2026" oninput="S.addTxt=this.value">'+esc(S.addTxt)+'</textarea>'
+    +'<div style="display:flex;gap:8px;margin-top:10px"><button class="primary" onclick="addAI()" '+(S.addLoad?'disabled':'')+'>'+(S.addLoad?'Parsing\u2026':'Parse \u2197')+'</button><button onclick="S.showAdd=false;S.addTxt=\'\';render()">Cancel</button></div>'
+    +'</div>':'';
+
+  var main='<div style="flex:1;min-width:0;padding:1.5rem">'
+    +briefPanel
+    +(S.showManual?newCampForm():'')
+    +sortedCamps.map(c=>'<div id="camp-'+c.id+'">'+cCard(c,false)+'</div>').join('')
+    +'</div>';
+
+  return '<div style="display:flex;align-items:flex-start;margin:-1.5rem">'+sidebar+main+'</div>';
 }
 
 function rGeneral(){
@@ -722,7 +784,7 @@ window.addLink=(cid)=>{const label=document.getElementById('lnk-label-'+cid).val
 window.removeLink=(cid,i)=>{const c=S.campaigns.find(c=>c.id===cid);c.links.splice(i,1);saveToBin();render();};
 window.saveTsk=(cid)=>{if(!S.atName.trim())return;const c=S.campaigns.find(c=>c.id===cid);c.tasks.push({id:'t'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['campaigns'];saveToBin();render();};
 window.saveGen=()=>{if(!S.atName.trim())return;S.generalTasks.push({id:'gen'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['Other'],blk:'',notes:S.agNotes,links:[],archived:false});S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['Other'];S.agNotes='';saveToBin();render();};
-window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venues:nc.venues&&nc.venues.length?[...nc.venues]:['All Venues'],venue:(nc.venues&&nc.venues[0])||'All Venues',status:nc.status,start:nc.start,end:nc.end,desc:nc.desc,links:[],comments:[],color:nc.color||'#C8131A',results:{covers:'',promo:'',alac:'',notes:''},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venues:['All Venues'],venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns']};saveToBin();render();};
+window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venues:nc.venues&&nc.venues.length?[...nc.venues]:['All Venues'],venue:(nc.venues&&nc.venues[0])||'All Venues',launchDate:nc.launchDate||'',launchTBC:nc.launchTBC||false,archived:false,status:nc.status,start:nc.start,end:nc.end,desc:nc.desc,links:[],comments:[],color:nc.color||'#C8131A',results:{covers:'',promo:'',alac:'',notes:''},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venues:['All Venues'],venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns'],launchDate:'',launchTBC:false};saveToBin();render();};
 window.upR=(cid,f,v)=>{const c=S.campaigns.find(c=>c.id===cid);if(!c.results)c.results={covers:'',promo:'',alac:'',notes:''};c.results[f]=v;saveToBin();};
 window.subReq=()=>{if(!S.rqF.name.trim())return;S.requests.push({id:'r'+uid(),name:S.rqF.name.trim(),details:S.rqF.details,cid:S.rqF.cid,who:[...(S.rqF.who||[])],due:S.rqF.due,by:S.rqF.by,status:'pending',rejComment:'',date:new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'})});S.rqF={name:'',details:'',cid:'',who:[],due:'',by:''};saveToBin();render();};
 window.accReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='accepted';const whoArr=Array.isArray(r.who)?r.who:(r.who?r.who.split(',').map(s=>s.trim()).filter(Boolean):[]);if(r.cid){const c=S.campaigns.find(c=>c.id===r.cid);if(c){c.tasks.push({id:'t'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);}}else{S.generalTasks.push({id:'gen'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['Other'],blk:'',notes:r.details||'',links:[],archived:false});}saveToBin();render();};
@@ -844,6 +906,44 @@ window.genResAnalysis=async function(){
   S.resAnalysisLoad=false;render();
 };
 
+window.scrollToCamp=function(cid){
+  if(!S.openCamps.has(cid))S.openCamps.add(cid);
+  render();
+  setTimeout(function(){
+    var el=document.getElementById('camp-'+cid);
+    if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
+  },60);
+};
+window.archiveCamp=function(cid){
+  if(!confirm('Archive this campaign?'))return;
+  S.campaigns.find(function(c){return c.id===cid;}).archived=true;
+  saveToBin();render();
+};
+window.deleteCamp=function(cid){
+  if(!confirm('Permanently delete this campaign and all its tasks?'))return;
+  S.campaigns=S.campaigns.filter(function(c){return c.id!==cid;});
+  S.openCamps.delete(cid);saveToBin();render();
+};
+window.dragSbStart=function(i){S.dragSbSrc=i;};
+window.dragSbOver=function(e,i){e.preventDefault();};
+window.dragSbDrop=function(ti){
+  if(S.dragSbSrc===null||S.dragSbSrc===undefined||S.dragSbSrc===ti){S.dragSbSrc=null;return;}
+  var active=S.campaigns.filter(function(c){return !c.archived;});
+  var sorted=S.fSortByDate?active.slice().sort(function(a,b){
+    if(a.launchTBC&&!b.launchTBC)return-1;if(!a.launchTBC&&b.launchTBC)return 1;
+    if(!a.launchDate&&!b.launchDate)return 0;if(!a.launchDate)return 1;if(!b.launchDate)return-1;
+    return new Date(a.launchDate)-new Date(b.launchDate);
+  }):active.slice();
+  var moved=sorted.splice(S.dragSbSrc,1)[0];sorted.splice(ti,0,moved);
+  S.campaigns=sorted.concat(S.campaigns.filter(function(c){return c.archived;}));
+  S.dragSbSrc=null;saveToBin();render();
+};
+document.addEventListener('click',function(e){
+  if(S.sbMenu&&!e.target.closest('[onclick*="sbMenu"]')){S.sbMenu=null;render();}
+});
+
+window._hcc=function(e,cid){if(!e.target.closest('button'))toggleCampOpen(cid);};
+
 async function init(){
   if(!BIN_KEY||!BIN_ID){
     if(BIN_ID){document.getElementById('sc-binid').style.display='block';document.getElementById('sc-binid').value=BIN_ID;document.getElementById('sc-desc').textContent='Enter your JSONBin API key to sync with the shared dashboard.';}
@@ -858,4 +958,4 @@ async function init(){
 init();
 </script>
 </body>
-</html+'<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Campaign image</div>'+(c.image?'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><img src="'+c.image+'" style="width:60px;height:85px;object-fit:cover;border-radius:3px;border:1px solid var(--border)"><button onclick="removeCampImage(\''+c.id+'\')" style="font-size:11px;padding:3px 9px;color:var(--red);border-color:rgba(200,19,26,0.2)">Remove</button></div>':'<div style="font-size:12px;color:var(--muted);margin-bottom:6px">No image uploaded.</div>')+'<input type="file" accept="image/*" onchange="uploadCampImage(\''+c.id+'\',this)" style="font-size:12px"></div>'>
+</html+'<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Campaign image</div>'+(c.image?'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><img src="'+c.image+'" style="width:60px;height:85px;object-fit:cover;border-radius:3px;border:1px solid var(--border)"><button onclick="removeCampImage(\''+c.id+'\')" style="font-size:11px;padding:3px 9px;color:var(--red);border-color:rgba(200,19,26,0.2)">Remove</button></div>':'<div style="font-size:12px;color:var(--muted);margin-bottom:6px">No image uploaded.</div>')+'<input type="file" accept="image/*" onchange="uploadCampImage(\''+c.id+'\',this)" style="font-size:12px"></div>'+'<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Launch date</div><div style="display:flex;align-items:center;gap:10px"><input type="date" value="'+(nc.launchDate||'')+'" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="S.newCamp.launchDate=this.value"> <label style="display:flex;align-items:center;gap:5px;font-size:12px"><input type="checkbox" '+(nc.launchTBC?'checked ':'')+' onchange="S.newCamp.launchTBC=this.checked" style="accent-color:var(--red)"> TBC</label></div></div>'>
