@@ -22,7 +22,7 @@ a{color:#185FA5}
 #app{display:none;padding:1.5rem;max-width:960px;margin:0 auto;min-height:100vh}
 .ph{display:flex;align-items:center;justify-content:space-between;margin-bottom:1.25rem;padding-bottom:1rem;border-bottom:0.5px solid rgba(0,0,0,0.1)}
 .ph-title{font-size:13px;font-weight:500;color:#999;letter-spacing:0.06em;text-transform:uppercase}
-.ph-right{display:flex;align-items:center;gap:6px}
+.ph-right{display:flex;align-items:center;gap:6px;flex-wrap:wrap}
 .tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none;padding-bottom:10px;border-bottom:0.5px solid rgba(0,0,0,0.08);margin-bottom:1.25rem}
 .tabs::-webkit-scrollbar{display:none}
 .tab{border:none;background:transparent;font-family:inherit;font-size:12px;color:#888;cursor:pointer;padding:5px 12px;border-radius:8px;white-space:nowrap}
@@ -50,7 +50,6 @@ a{color:#185FA5}
 .cm{padding:5px 0;border-bottom:0.5px solid rgba(0,0,0,0.06)}
 .cm:last-child{border-bottom:none}
 .atf{background:#f9f9f8;border-radius:8px;border:0.5px dashed rgba(0,0,0,0.15);padding:10px 12px;margin:8px 0 4px}
-.notice{background:#E6F1FB;border-radius:8px;padding:8px 12px;font-size:12px;color:#0C447C;margin-bottom:1rem}
 .upbox{display:flex;align-items:center;gap:8px;padding:8px 10px;background:white;border:0.5px solid rgba(0,0,0,0.15);border-radius:8px;margin-bottom:8px}
 .ap{background:#f9f9f8;border-radius:12px;border:0.5px solid rgba(0,0,0,0.1);padding:1rem 1.25rem;margin-bottom:1rem}
 .bo{background:#f9f9f8;border-radius:12px;padding:1rem;font-size:13px;line-height:1.7;white-space:pre-wrap;margin-top:1rem;border:0.5px solid rgba(0,0,0,0.08)}
@@ -60,7 +59,7 @@ a{color:#185FA5}
 hr{border:none;border-top:0.5px solid rgba(0,0,0,0.08);margin:10px 0}
 .dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
 #sync{position:fixed;bottom:20px;right:20px;font-size:11px;color:#888;background:white;padding:5px 12px;border-radius:100px;border:0.5px solid rgba(0,0,0,0.12);display:none;z-index:999;box-shadow:0 2px 8px rgba(0,0,0,0.08)}
-#settings-panel{position:fixed;top:0;right:0;bottom:0;width:300px;background:white;border-left:0.5px solid rgba(0,0,0,0.12);z-index:100;padding:1.5rem;overflow-y:auto;transform:translateX(100%);transition:transform 0.2s ease}
+#settings-panel{position:fixed;top:0;right:0;bottom:0;width:320px;background:white;border-left:0.5px solid rgba(0,0,0,0.12);z-index:100;padding:1.5rem;overflow-y:auto;transform:translateX(100%);transition:transform 0.2s ease}
 #settings-panel.open{transform:translateX(0)}
 #settings-overlay{position:fixed;inset:0;background:rgba(0,0,0,0.2);z-index:99;display:none}
 #settings-overlay.open{display:block}
@@ -78,6 +77,10 @@ button:disabled{opacity:0.5;cursor:not-allowed}
 .g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
 .rqc{background:white;border:0.5px solid rgba(0,0,0,0.1);border-radius:12px;padding:12px 14px;margin-bottom:8px}
+.arch-badge{display:inline-block;padding:1px 6px;border-radius:100px;font-size:10px;background:#f5f5f3;border:0.5px solid rgba(0,0,0,0.15);color:#888;margin-left:4px}
+/* Editable campaign fields */
+.camp-edit-field{font-family:inherit;font-size:inherit;color:inherit;background:transparent;border:none;border-bottom:1px dashed rgba(0,0,0,0.2);outline:none;width:100%;padding:1px 0}
+.camp-edit-field:focus{border-bottom-color:#185FA5}
 @media(max-width:600px){.g2,.g3{grid-template-columns:1fr}.ph-title{font-size:11px}#settings-panel{width:100%}}
 </style>
 </head>
@@ -120,7 +123,7 @@ button:disabled{opacity:0.5;cursor:not-allowed}
   </div>
   <hr style="margin-bottom:1.5rem">
   <div style="font-size:12px;font-weight:500;color:#888;text-transform:uppercase;letter-spacing:0.06em;margin-bottom:10px">Storage</div>
-  <div style="font-size:12px;color:#888;margin-bottom:10px">Connected to JSONBin. Data syncs automatically every 30 seconds and on tab focus.</div>
+  <div style="font-size:12px;color:#888;margin-bottom:10px">Connected to JSONBin. Syncs automatically every 30s and on tab focus.</div>
   <button onclick="resetSetup()" style="font-size:12px;padding:5px 12px;color:#791F1F;border-color:rgba(180,0,0,0.2)">Reconnect / reset storage</button>
 </div>
 <div id="sync"></div>
@@ -140,14 +143,28 @@ function fd(d){if(!d)return'';return new Date(d).toLocaleDateString('en-SG',{day
 function isOv(d){return d&&new Date(d)<TODAY;}
 function esc(s){return(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
 function du(d){return db(TODAY,d);}
-function pct(c){return Math.round(c.tasks.filter(t=>t.status==='done').length/Math.max(1,c.tasks.length)*100);}
+function pct(c){return Math.round(c.tasks.filter(t=>t.status==='done'&&!t.archived).length/Math.max(1,c.tasks.filter(t=>!t.archived).length)*100);}
 function uid(){return Math.random().toString(36).slice(2,8);}
 function showSync(msg,dur){const el=document.getElementById('sync');el.textContent=msg;el.style.display='block';if(dur)setTimeout(()=>el.style.display='none',dur);}
+
+// Sort tasks by due date (nulls last)
+function sortByDue(arr){
+  return [...arr].sort((a,b)=>{
+    if(!a.due&&!b.due)return 0;
+    if(!a.due)return 1;
+    if(!b.due)return -1;
+    return new Date(a.due)-new Date(b.due);
+  });
+}
 
 function migrateCats(arr){
   return(arr||[]).map(item=>{
     if(!item.cats)item.cats=item.cat?[item.cat]:['campaigns'];
-    if(item.tasks)item.tasks=item.tasks.map(t=>{if(!t.cats)t.cats=t.cat?[t.cat]:['campaigns'];return t;});
+    if(item.tasks)item.tasks=item.tasks.map(t=>{
+      if(!t.cats)t.cats=t.cat?[t.cat]:['campaigns'];
+      if(t.archived===undefined)t.archived=false;
+      return t;
+    });
     return item;
   });
 }
@@ -169,7 +186,6 @@ async function loadFromBin(silent){
   }catch(e){console.error('Load failed:',e);}
   return false;
 }
-
 function saveToBin(){
   if(!BIN_KEY||!BIN_ID)return;
   clearTimeout(saveTimer);
@@ -181,18 +197,16 @@ function saveToBin(){
       const r=await fetch(`https://api.jsonbin.io/v3/b/${BIN_ID}`,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':BIN_KEY},body:JSON.stringify(payload)});
       if(r.ok)showSync('Saved',2000);
       else{const t=await r.text();console.error('Save error',r.status,t);showSync('Save failed ('+r.status+')',3000);}
-    }catch(e){console.error(e);showSync('Save failed',3000);}
+    }catch(e){showSync('Save failed',3000);}
     finally{saving=false;}
   },1500);
 }
-
 async function createBin(key){
   const payload={campaigns:S.campaigns,generalTasks:S.generalTasks,requests:S.requests,team:S.team};
   const r=await fetch('https://api.jsonbin.io/v3/b',{method:'POST',headers:{'Content-Type':'application/json','X-Master-Key':key,'X-Bin-Name':'1arden-dashboard','X-Bin-Private':'false'},body:JSON.stringify(payload)});
   if(!r.ok)throw new Error('API error '+r.status);
   return(await r.json()).metadata.id;
 }
-
 function startPolling(){
   if(pollTimer)clearInterval(pollTimer);
   pollTimer=setInterval(async()=>{
@@ -202,11 +216,9 @@ function startPolling(){
     if(ok){const next=JSON.stringify({c:S.campaigns,g:S.generalTasks,r:S.requests,t:S.team});if(prev!==next){showSync('Updated',1500);render();renderTeamList();}}
   },30000);
 }
-
 document.addEventListener('visibilitychange',async()=>{
   if(!document.hidden&&BIN_KEY&&BIN_ID){const ok=await loadFromBin(true);if(ok){showSync('Refreshed',1500);render();}}
 });
-
 window.manualRefresh=async()=>{showSync('Refreshing...');const ok=await loadFromBin(false);if(ok){showSync('Updated',1500);render();}else showSync('Refresh failed',2000);};
 
 async function doSetup(){
@@ -227,9 +239,8 @@ async function doSetup(){
     setTimeout(()=>{document.getElementById('setup-screen').style.display='none';document.getElementById('app').style.display='block';render();startPolling();},1800);
   }catch(e){document.getElementById('sc-msg').textContent='Could not connect. Check your API key.';btn.disabled=false;btn.textContent='Connect storage';}
 }
-
 function resetSetup(){
-  if(!confirm('Disconnect from storage? You will need to re-enter your API key.'))return;
+  if(!confirm('Disconnect from storage?'))return;
   localStorage.removeItem('jb_key');localStorage.removeItem('jb_id');BIN_KEY='';BIN_ID='';
   closeSettings();
   document.getElementById('app').style.display='none';document.getElementById('setup-screen').style.display='flex';
@@ -238,76 +249,105 @@ function resetSetup(){
   document.getElementById('sc-btn').textContent='Connect storage';document.getElementById('sc-btn').disabled=false;
   document.getElementById('sc-share').style.display='none';document.getElementById('sc-msg').textContent='';
 }
-
 function showShareURL(){const url=window.location.origin+window.location.pathname+'?bin='+BIN_ID;navigator.clipboard?navigator.clipboard.writeText(url).then(()=>alert('Share link copied!\n\n'+url)):alert('Share link:\n\n'+url);}
 
 window.openSettings=()=>{renderTeamList();document.getElementById('settings-panel').classList.add('open');document.getElementById('settings-overlay').classList.add('open');};
 window.closeSettings=()=>{document.getElementById('settings-panel').classList.remove('open');document.getElementById('settings-overlay').classList.remove('open');};
 function renderTeamList(){
-  document.getElementById('team-list').innerHTML=S.team.map(m=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:#f9f9f8;border-radius:8px;margin-bottom:6px;border:0.5px solid rgba(0,0,0,0.07)"><span style="font-size:13px">${esc(m)}</span><button onclick="removeMember('${esc(m)}')" style="font-size:11px;padding:2px 8px;color:#791F1F;border-color:rgba(180,0,0,0.2)">Remove</button></div>`).join('');
+  document.getElementById('team-list').innerHTML=S.team.map(m=>`
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:#f9f9f8;border-radius:8px;margin-bottom:6px;border:0.5px solid rgba(0,0,0,0.07)">
+      <span style="font-size:13px">${esc(m)}</span>
+      <button onclick="removeMember('${esc(m)}')" style="font-size:11px;padding:2px 8px;color:#791F1F;border-color:rgba(180,0,0,0.2)">Remove</button>
+    </div>`).join('');
 }
 window.addMember=()=>{const inp=document.getElementById('new-member-input');const name=inp.value.trim();if(!name||S.team.includes(name))return;S.team.push(name);inp.value='';renderTeamList();saveToBin();};
-window.removeMember=m=>{if(S.team.length<=1){alert('At least one team member required.');return;}if(!confirm('Remove '+m+' from the team?'))return;S.team=S.team.filter(t=>t!==m);renderTeamList();saveToBin();};
+window.removeMember=m=>{
+  if(!confirm('Remove '+m+' from the team? They will be unassigned from all tasks.'))return;
+  S.team=S.team.filter(t=>t!==m);
+  // Remove from all task assignments
+  S.campaigns.forEach(c=>c.tasks.forEach(t=>{t.who=t.who.filter(w=>w!==m);}));
+  S.generalTasks.forEach(t=>{t.who=t.who.filter(w=>w!==m);});
+  renderTeamList();saveToBin();render();
+};
 
 let S={
   tab:'dashboard',exp:null,fVenue:'all',fAss:'all',fGenCat:'all',fCampCat:'all',
   showAdd:false,addTxt:'',addLoad:false,briefTxt:'',briefOut:'',briefLoad:false,
   cDraft:{},aLE:null,aLT:'',addTF:null,atName:'',atWho:[],atDue:'',atCats:['campaigns'],agNotes:'',
+  editCamp:null,
   requests:[],rqF:{name:'',details:'',cid:'',who:[],due:'',by:''},rjC:{},
   team:['Daryl','Philicia','Zul','Keisha','Jit Seng'],
   generalTasks:[
-    {id:'gen1',name:'Order A3 card stock from Fancy Papers',status:'not-started',who:['Philicia'],due:'2026-04-18',comments:[],cats:['Supplier & orders'],blk:'',notes:"For Mother's Day menus across all venues"},
-    {id:'gen2',name:'Print Kaarla spring menu inserts (x80)',status:'not-started',who:['Zul','Philicia'],due:'2026-04-22',comments:[],cats:['Print & production'],blk:'',notes:'Coordinate with Zul on final PDF before sending'},
-    {id:'gen3',name:'GPSS hoarding sticker installation — CapitaSpring lobby',status:'not-started',who:['Daryl'],due:'2026-04-30',comments:[],cats:['Installations'],blk:'',notes:'Liaise with building management for access schedule'},
-    {id:'gen4',name:'Restock Sol and Luna signage holders',status:'not-started',who:['Philicia'],due:'2026-04-20',comments:[],cats:['Operations'],blk:'',notes:''},
+    {id:'gen1',name:'Order A3 card stock from Fancy Papers',status:'not-started',who:['Philicia'],due:'2026-04-18',comments:[],cats:['Supplier & orders'],blk:'',notes:"For Mother's Day menus across all venues",archived:false},
+    {id:'gen2',name:'Print Kaarla spring menu inserts (x80)',status:'not-started',who:['Zul','Philicia'],due:'2026-04-22',comments:[],cats:['Print & production'],blk:'',notes:'Coordinate with Zul on final PDF before sending',archived:false},
+    {id:'gen3',name:'GPSS hoarding sticker installation — CapitaSpring lobby',status:'not-started',who:['Daryl'],due:'2026-04-30',comments:[],cats:['Installations'],blk:'',notes:'Liaise with building management for access schedule',archived:false},
+    {id:'gen4',name:'Restock Sol and Luna signage holders',status:'not-started',who:['Philicia'],due:'2026-04-20',comments:[],cats:['Operations'],blk:'',notes:'',archived:false},
   ],
   campaigns:[
-    {id:'gpss',name:'GPSS: Pole Position',cats:['campaigns'],venue:'All Venues',status:'active',start:'2026-05-01',end:'2026-06-15',desc:"F1 circuit-to-venue umbrella campaign across all 14 1-Group restaurants. Starting Grid visual as PR hook.",link:'',color:'#185FA5',tasks:[
-      {id:'g1',name:'Finalise circuit-venue pairings',status:'done',who:['Daryl'],due:'2026-04-10',comments:[],cats:['campaigns'],blk:''},
-      {id:'g2',name:'GPSS PPTX deck — 1-Arden enclave',status:'in-progress',who:['Daryl','Zul'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:''},
-      {id:'g3',name:'Starting Grid visual (PR hook)',status:'in-progress',who:['Zul'],due:'2026-04-25',comments:[],cats:['pr-kol'],blk:''},
-      {id:'g4',name:'Social copy suite — all venues',status:'not-started',who:['Daryl','Philicia'],due:'2026-04-28',comments:[],cats:['campaigns'],blk:''},
-      {id:'g5',name:'KOL briefing and outreach',status:'not-started',who:['Daryl'],due:'2026-05-01',comments:[],cats:['pr-kol'],blk:''},
-      {id:'g6',name:'GEO FAQ content build',status:'not-started',who:['Philicia'],due:'2026-05-03',comments:[],cats:['campaigns'],blk:''},
-      {id:'g7',name:'Press release — Pole Position',status:'not-started',who:['Daryl'],due:'2026-05-01',comments:[],cats:['pr-kol'],blk:''},
-    ],results:{covers:'',promo:'',alac:'',notes:''}},
-    {id:'val',name:'The Valencia Set',cats:['campaigns'],venue:'Sol and Luna',status:'active',start:'2026-04-15',end:'2026-06-01',desc:"Sol and Luna soft launch built around the ORA Valencia concept.",link:'',color:'#854F0B',tasks:[
-      {id:'v1',name:'Campaign deck final review',status:'in-progress',who:['Daryl'],due:'2026-04-18',comments:[],cats:['campaigns'],blk:''},
-      {id:'v2',name:'ORA Valencia menu copy',status:'done',who:['Daryl'],due:'2026-04-15',comments:[],cats:['campaigns'],blk:''},
-      {id:'v3',name:'Hero photo shoot — Valencia Set',status:'not-started',who:['Daryl','Zul'],due:'2026-04-28',comments:[],cats:['campaigns'],blk:''},
-      {id:'v4',name:'Social content calendar (May)',status:'not-started',who:['Philicia'],due:'2026-04-25',comments:[],cats:['campaigns'],blk:''},
-      {id:'v5',name:'KOL invites — soft launch',status:'not-started',who:['Daryl'],due:'2026-05-01',comments:[],cats:['pr-kol'],blk:''},
-      {id:'v6',name:'Group dining package creation',status:'not-started',who:['Daryl','Keisha'],due:'2026-04-30',comments:[],cats:['group-dining'],blk:''},
-    ],results:{covers:'',promo:'',alac:'',notes:''}},
-    {id:'mday',name:"Mother's Day: Steeped in Love",cats:['campaigns','group-dining'],venue:'All Venues',status:'active',start:'2026-04-20',end:'2026-05-11',desc:"Multi-venue Mother's Day activation. GEO FAQ components, social copy, group dining reservation push.",link:'',color:'#993556',tasks:[
-      {id:'m1',name:'GEO FAQ HTML — all venues',status:'in-progress',who:['Daryl'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:''},
-      {id:'m2',name:'Social copy suite — all venues',status:'done',who:['Daryl'],due:'2026-04-18',comments:[],cats:['campaigns'],blk:''},
-      {id:'m3',name:'Email campaign copy',status:'in-progress',who:['Philicia'],due:'2026-04-22',comments:[],cats:['campaigns'],blk:''},
-      {id:'m4',name:'Reservation push — group dining',status:'not-started',who:['Daryl','Keisha'],due:'2026-04-25',comments:[],cats:['group-dining'],blk:''},
-      {id:'m5',name:'Set menu design brief to Zul',status:'done',who:['Daryl','Zul'],due:'2026-04-15',comments:[],cats:['campaigns'],blk:''},
-      {id:'m6',name:'Design proofread',status:'in-progress',who:['Keisha','Jit Seng'],due:'2026-04-22',comments:[],cats:['campaigns'],blk:''},
-    ],results:{covers:'',promo:'',alac:'',notes:''}},
-    {id:'tai',name:'Oumi Nose-to-Tail (Tai) Shoot',cats:['campaigns'],venue:'Oumi',status:'active',start:'2026-04-10',end:'2026-04-30',desc:"Content shoot for Oumi's Nose-to-Tail menu with Chef Lamley.",link:'',color:'#0F6E56',tasks:[
-      {id:'o1',name:'Production brief finalised',status:'done',who:['Daryl'],due:'2026-04-12',comments:[],cats:['campaigns'],blk:''},
-      {id:'o2',name:'Run sheet compressed',status:'done',who:['Daryl'],due:'2026-04-12',comments:[],cats:['campaigns'],blk:''},
-      {id:'o3',name:'Shoot day execution',status:'in-progress',who:['Daryl','Zul'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:''},
-      {id:'o4',name:'Post-production and selects',status:'not-started',who:['Zul'],due:'2026-04-28',comments:[],cats:['campaigns'],blk:''},
-      {id:'o5',name:'Nose-to-Tail menu copy',status:'not-started',who:['Daryl','Philicia'],due:'2026-04-25',comments:[],cats:['campaigns'],blk:''},
-    ],results:{covers:'',promo:'',alac:'',notes:''}},
-    {id:'tat',name:'Tatler Best Singapore 2026',cats:['pr-kol'],venue:'Oumi',status:'active',start:'2026-03-01',end:'2026-09-30',desc:'Strategy to secure Oumi a Top 20 position in the Tatler Best Singapore 2026 editorial cycle.',link:'',color:'#534AB7',tasks:[
-      {id:'ta1',name:'Editorial strategy document',status:'done',who:['Daryl'],due:'2026-03-30',comments:[],cats:['pr-kol'],blk:''},
-      {id:'ta2',name:'Tatler editor outreach',status:'in-progress',who:['Daryl'],due:'2026-05-01',comments:[],cats:['pr-kol'],blk:''},
-      {id:'ta3',name:'Critic and journalist invite programme',status:'not-started',who:['Daryl'],due:'2026-05-15',comments:[],cats:['pr-kol'],blk:''},
-      {id:'ta4',name:'Coverage milestone tracking',status:'not-started',who:['Philicia'],due:'2026-06-01',comments:[],cats:['pr-kol'],blk:''},
-    ],results:{covers:'',promo:'',alac:'',notes:''}},
-    {id:'fday',name:"Father's Day Campaign",cats:['campaigns'],venue:'All Venues',status:'planned',start:'2026-05-15',end:'2026-06-22',desc:"Philicia's capstone campaign covering Father's Day, GPSS wrap-up, and Let's Go Local activations.",link:'',color:'#3B6D11',tasks:[
-      {id:'f1',name:'Campaign brief (Philicia lead)',status:'not-started',who:['Philicia','Daryl'],due:'2026-05-10',comments:[],cats:['campaigns'],blk:''},
-      {id:'f2',name:'Set menu concept and copy',status:'not-started',who:['Philicia'],due:'2026-05-20',comments:[],cats:['campaigns'],blk:''},
-      {id:'f3',name:'Social content calendar',status:'not-started',who:['Philicia'],due:'2026-05-25',comments:[],cats:['campaigns'],blk:''},
-      {id:'f4',name:'Design brief to Zul',status:'not-started',who:['Philicia','Zul'],due:'2026-05-28',comments:[],cats:['campaigns'],blk:''},
-      {id:'f5',name:'Group dining packages',status:'not-started',who:['Philicia','Keisha'],due:'2026-05-30',comments:[],cats:['group-dining'],blk:''},
-      {id:'f6',name:"Let's Go Local activation brief",status:'not-started',who:['Philicia','Daryl'],due:'2026-06-05',comments:[],cats:['tourism'],blk:''},
-    ],results:{covers:'',promo:'',alac:'',notes:''}},
+    {id:'gpss',name:'GPSS: Pole Position',cats:['campaigns','pr-kol'],venue:'All Venues',status:'active',start:'2026-05-01',end:'2026-06-15',desc:"F1 circuit-to-venue umbrella campaign across all 14 1-Group restaurants. Starting Grid visual as PR hook.",link:'',color:'#185FA5',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+      {id:'g1',name:'Finalise circuit-venue pairings',status:'done',who:['Daryl'],due:'2026-04-10',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'g2',name:'GPSS PPTX deck — 1-Arden enclave',status:'in-progress',who:['Daryl','Zul'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'g3',name:'Starting Grid visual (PR hook)',status:'in-progress',who:['Zul'],due:'2026-04-25',comments:[],cats:['pr-kol'],blk:'',archived:false},
+      {id:'g4',name:'Social copy suite — all venues',status:'not-started',who:['Daryl','Philicia'],due:'2026-04-28',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'g5',name:'KOL briefing and outreach',status:'not-started',who:['Daryl'],due:'2026-05-01',comments:[],cats:['pr-kol'],blk:'',archived:false},
+      {id:'g6',name:'GEO FAQ content build',status:'not-started',who:['Philicia'],due:'2026-05-03',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'g7',name:'Press release — Pole Position',status:'not-started',who:['Daryl'],due:'2026-05-01',comments:[],cats:['pr-kol'],blk:'',archived:false},
+    ]},
+    {id:'val',name:'The Valencia Set',cats:['campaigns'],venue:'Sol and Luna',status:'active',start:'2026-04-15',end:'2026-06-01',desc:"Sol and Luna soft launch built around the ORA Valencia concept.",link:'',color:'#854F0B',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+      {id:'v1',name:'Mechanics and positioning',status:'in-progress',who:['Daryl'],due:'2026-04-18',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'v2',name:'Menu and drinks content',status:'in-progress',who:['Philicia'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'v3',name:'Website landing page',status:'not-started',who:['Philicia'],due:'2026-04-25',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'v4',name:'Social posts — launch calendar',status:'not-started',who:['Philicia'],due:'2026-04-28',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'v5',name:'Hero photo shoot',status:'not-started',who:['Daryl','Zul'],due:'2026-04-28',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'v6',name:'KOL invites — soft launch',status:'not-started',who:['Daryl'],due:'2026-05-01',comments:[],cats:['pr-kol'],blk:'',archived:false},
+      {id:'v7',name:'Group dining package creation',status:'not-started',who:['Daryl','Keisha'],due:'2026-04-30',comments:[],cats:['group-dining'],blk:'',archived:false},
+    ]},
+    {id:'mday',name:"Mother's Day: Steeped in Love",cats:['campaigns','group-dining'],venue:'All Venues',status:'active',start:'2026-04-01',end:'2026-05-11',desc:"Multi-venue Mother's Day activation. GEO FAQ components, social copy, and group dining reservation push.",link:'',color:'#993556',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+      {id:'m1',name:'Finalise mechanics',status:'done',who:['Daryl'],due:'2026-04-01',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'m2',name:'Arrange content shoot',status:'done',who:['Philicia'],due:'2026-04-03',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'m3',name:'Send MRF',status:'done',who:['Imms'],due:'2026-04-05',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'m4',name:'Send design brief',status:'done',who:['Philicia'],due:'2026-04-05',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'m5',name:'Finalise artwork and menus',status:'done',who:['Philicia'],due:'2026-04-10',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'m6',name:'Roll out website and schedule socials',status:'done',who:['Daryl'],due:'2026-04-15',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'m7',name:'GEO FAQ HTML — all venues',status:'in-progress',who:['Daryl'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'m8',name:'Group dining reservation push',status:'not-started',who:['Daryl','Keisha'],due:'2026-04-25',comments:[],cats:['group-dining'],blk:'',archived:false},
+    ]},
+    {id:'tai',name:'Oumi: Nose-to-Tail',cats:['campaigns'],venue:'Oumi',status:'active',start:'2026-04-01',end:'2026-05-15',desc:"Content and campaign for Oumi's Nose-to-Tail pre-order menu with Chef Lamley.",link:'',color:'#0F6E56',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+      {id:'o1',name:'Mechanics confirmed',status:'done',who:['Daryl'],due:'2026-03-18',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'o2',name:'Shoot',status:'in-progress',who:['Philicia'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'o3',name:'Artwork and KVs finalised',status:'not-started',who:['Philicia'],due:'2026-04-25',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'o4',name:'Menu copy',status:'not-started',who:['Daryl','Philicia'],due:'2026-04-25',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'o5',name:'Website landing page',status:'not-started',who:['Daryl'],due:'2026-04-28',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'o6',name:'Social posts and stories scheduled',status:'not-started',who:['Philicia'],due:'2026-04-30',comments:[],cats:['campaigns'],blk:'',archived:false},
+    ]},
+    {id:'fnf',name:'Flame and Farm: Spring Harvest',cats:['campaigns'],venue:'Kaarla',status:'active',start:'2026-03-18',end:'2026-04-30',desc:"Kaarla communal dining concept for spring. Content shoot and campaign rollout in execution.",link:'',color:'#639922',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+      {id:'fnf1',name:'Shoot',status:'done',who:['Philicia'],due:'2026-03-18',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'fnf2',name:'Mechanics confirmed',status:'done',who:['Daryl'],due:'2026-03-18',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'fnf3',name:'Artwork and KVs finalised',status:'done',who:['Philicia'],due:'2026-03-30',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'fnf4',name:'Website landing page',status:'done',who:['Daryl'],due:'2026-03-30',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'fnf5',name:'Social posts and stories scheduled',status:'in-progress',who:['Philicia'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:'',archived:false},
+    ]},
+    {id:'wtss',name:'Tasting Dinner Collab — WTSS',cats:['campaigns','group-dining'],venue:'Oumi',status:'active',start:'2026-03-18',end:'2026-05-06',desc:"Collaborative tasting dinner with WTSS on 6 May.",link:'',color:'#534AB7',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+      {id:'w1',name:'Shoot',status:'done',who:['Daryl'],due:'2026-03-18',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'w2',name:'Artwork and menus',status:'in-progress',who:['Daryl'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'w3',name:'Website landing page and pop-up',status:'done',who:['Daryl'],due:'2026-03-18',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'w4',name:'Email blast',status:'blocked',who:['Daryl'],due:'2026-04-25',comments:[],cats:['campaigns'],blk:'Waiting on final artwork from WTSS',archived:false},
+      {id:'w5',name:'Social post and stories',status:'blocked',who:['Philicia'],due:'2026-04-25',comments:[],cats:['campaigns'],blk:'Pending artwork',archived:false},
+    ]},
+    {id:'tat',name:'Tatler Best Singapore 2026',cats:['pr-kol'],venue:'Oumi',status:'active',start:'2026-03-01',end:'2026-09-30',desc:'Strategy to secure Oumi a Top 20 position in the Tatler Best Singapore 2026 editorial cycle.',link:'',color:'#185FA5',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+      {id:'ta1',name:'Editorial strategy document',status:'done',who:['Daryl'],due:'2026-03-30',comments:[],cats:['pr-kol'],blk:'',archived:false},
+      {id:'ta2',name:'Tatler editor outreach',status:'in-progress',who:['Daryl'],due:'2026-05-01',comments:[],cats:['pr-kol'],blk:'',archived:false},
+      {id:'ta3',name:'Critic and journalist invite programme',status:'not-started',who:['Daryl'],due:'2026-05-15',comments:[],cats:['pr-kol'],blk:'',archived:false},
+      {id:'ta4',name:'Coverage milestone tracking',status:'not-started',who:['Philicia'],due:'2026-06-01',comments:[],cats:['pr-kol'],blk:'',archived:false},
+    ]},
+    {id:'fday',name:"Father's Day Campaign",cats:['campaigns'],venue:'All Venues',status:'planned',start:'2026-05-15',end:'2026-06-22',desc:"Philicia's capstone campaign covering Father's Day, GPSS wrap-up, and Let's Go Local activations.",link:'',color:'#3B6D11',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+      {id:'f1',name:'Campaign brief (Philicia lead)',status:'not-started',who:['Philicia','Daryl'],due:'2026-05-10',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'f2',name:'Set menu concept and copy',status:'not-started',who:['Philicia'],due:'2026-05-20',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'f3',name:'Social content calendar',status:'not-started',who:['Philicia'],due:'2026-05-25',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'f4',name:'Design brief to Zul',status:'not-started',who:['Philicia','Zul'],due:'2026-05-28',comments:[],cats:['campaigns'],blk:'',archived:false},
+      {id:'f5',name:'Group dining packages',status:'not-started',who:['Philicia','Keisha'],due:'2026-05-30',comments:[],cats:['group-dining'],blk:'',archived:false},
+      {id:'f6',name:"Let's Go Local activation brief",status:'not-started',who:['Philicia','Daryl'],due:'2026-06-05',comments:[],cats:['tourism'],blk:'',archived:false},
+    ]},
   ]
 };
 
@@ -349,6 +389,10 @@ function tExp(t,cid,isGen){
   const remaining=avail.filter(c=>!cats.includes(c));
   const addDrop=remaining.length?`<select class="sml" onchange="if(this.value){${isGen?`addGenTaskCat('${t.id}',this.value)`:`addTaskCat('${cid}','${t.id}',this.value)`};this.value=''}" style="font-size:11px;padding:2px 5px"><option value="">+ add</option>${remaining.map(c=>`<option value="${c}">${c}</option>`).join('')}</select>`:'';
   const whoRow=S.team.map(m=>`<span class="who-chip${t.who.includes(m)?' sel':''}" onclick="${isGen?`toggleGenWho('${t.id}','${m}')`:`toggleTaskWho('${cid}','${t.id}','${m}')`}">${esc(m)}</span>`).join('');
+  const archBtn=t.archived
+    ?`<button onclick="${isGen?`unarchiveGenTask('${t.id}')`:`unarchiveTask('${cid}','${t.id}')`}" style="font-size:11px;padding:3px 9px;color:#185FA5;border-color:rgba(24,95,165,0.3)">Unarchive</button>`
+    :`<button onclick="${isGen?`archiveGenTask('${t.id}')`:`archiveTask('${cid}','${t.id}')`}" style="font-size:11px;padding:3px 9px;color:#888;border-color:rgba(0,0,0,0.15)">Archive</button>`;
+  const delBtn=`<button onclick="${isGen?`deleteGenTask('${t.id}')`:`deleteTask('${cid}','${t.id}')`}" style="font-size:11px;padding:3px 9px;color:#791F1F;border-color:rgba(180,0,0,0.2)">Delete</button>`;
   return`<div class="tx">
 <div class="g2" style="margin-bottom:10px">
   <div><div style="font-size:11px;color:#888;margin-bottom:4px">Status</div>
@@ -369,6 +413,9 @@ ${t.comments.length?t.comments.map(c=>`<div class="cm"><span style="font-size:11
 <div style="display:flex;gap:6px;margin-top:8px">
   <input type="text" value="${dr}" placeholder="Add a comment…" style="flex:1;font-size:12px;padding:5px 8px;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px" oninput="S.cDraft['${t.id}']=this.value" onkeydown="if(event.key==='Enter')addCom('${cid||'gen'}','${t.id}',${!!isGen})">
   <button onclick="addCom('${cid||'gen'}','${t.id}',${!!isGen})" style="font-size:12px;padding:5px 10px">Post</button>
+</div>
+<div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:0.5px solid rgba(0,0,0,0.06)">
+  ${archBtn}${delBtn}
 </div></div>`;
 }
 
@@ -391,43 +438,74 @@ ${isGen?`<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;ma
 </div>`;
 }
 
+// Campaign edit form
+function campEditForm(c){
+  const whoRow=S.team.map(m=>{
+    const assigned=[...new Set(c.tasks.flatMap(t=>t.who))];
+    const sel=assigned.includes(m);
+    return`<span class="who-chip${sel?' sel':''}" style="cursor:default;opacity:0.7">${esc(m)}</span>`;
+  }).join('');
+  const cats=(c.cats||[]).map(cat=>`<span class="cat-pill">${esc(cat)}<button class="cat-pill-btn" onclick="removeCampCat('${c.id}','${cat}')">✕</button></span>`).join('');
+  const remaining=CAMP_CATS.filter(cat=>!(c.cats||[]).includes(cat));
+  const addDrop=remaining.length?`<select class="sml" onchange="if(this.value){addCampCat('${c.id}',this.value);this.value=''}" style="font-size:11px;padding:2px 5px"><option value="">+ category</option>${remaining.map(cat=>`<option value="${cat}">${cat}</option>`).join('')}</select>`:'';
+  return`<div class="ap" style="margin-top:10px">
+<div style="font-size:12px;font-weight:500;margin-bottom:10px">Edit campaign</div>
+<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;margin-bottom:3px">Campaign name</div><input type="text" value="${esc(c.name)}" style="width:100%;font-size:13px;padding:6px 8px;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px" oninput="setCampName('${c.id}',this.value)"></div>
+<div class="g2" style="margin-bottom:8px">
+  <div><div style="font-size:11px;color:#888;margin-bottom:3px">Start date</div><input type="date" value="${c.start||''}" style="width:100%;font-size:12px;padding:5px 8px;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px" onchange="setCampField('${c.id}','start',this.value)"></div>
+  <div><div style="font-size:11px;color:#888;margin-bottom:3px">End date</div><input type="date" value="${c.end||''}" style="width:100%;font-size:12px;padding:5px 8px;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px" onchange="setCampField('${c.id}','end',this.value)"></div>
+</div>
+<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;margin-bottom:3px">Venue</div>
+<select class="sml" style="width:100%" onchange="setCampField('${c.id}','venue',this.value)"><option value="All Venues"${c.venue==='All Venues'?' selected':''}>All Venues</option><option value="Arden Bar"${c.venue==='Arden Bar'?' selected':''}>Arden Bar</option><option value="Kaarla"${c.venue==='Kaarla'?' selected':''}>Kaarla</option><option value="Oumi"${c.venue==='Oumi'?' selected':''}>Oumi</option><option value="Sol and Luna"${c.venue==='Sol and Luna'?' selected':''}>Sol and Luna</option></select></div>
+<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;margin-bottom:3px">Status</div>
+<select class="sml" style="width:100%" onchange="setCampField('${c.id}','status',this.value)"><option value="active"${c.status==='active'?' selected':''}>Active</option><option value="planned"${c.status==='planned'?' selected':''}>Planned</option><option value="done"${c.status==='done'?' selected':''}>Done</option></select></div>
+<div style="margin-bottom:8px"><div style="font-size:11px;color:#888;margin-bottom:3px">Description</div><textarea style="width:100%;min-height:60px;font-size:12px;padding:5px 8px;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px;font-family:inherit;resize:vertical" oninput="setCampField('${c.id}','desc',this.value)">${esc(c.desc)}</textarea></div>
+<div style="margin-bottom:10px"><div style="font-size:11px;color:#888;margin-bottom:5px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">${cats}${addDrop}</div></div>
+<button onclick="S.editCamp=null;render()" style="font-size:12px;padding:5px 12px">Done editing</button>
+</div>`;
+}
+
 function cCard(c,showT){
+  const activeTasks=c.tasks.filter(t=>!t.archived);
   const pr=pct(c);
-  const team=[...new Set(c.tasks.flatMap(t=>t.who))];
-  const done=c.tasks.filter(t=>t.status==='done').length;
+  const team=[...new Set(activeTasks.flatMap(t=>t.who))];
+  const done=activeTasks.filter(t=>t.status==='done').length;
   const dl=du(c.end);
   const dls=dl>0?`${dl}d left`:dl===0?'ends today':'ended';
   const lnk=c.link?`<a href="${esc(c.link)}" target="_blank" style="font-size:12px">Assets</a>`:S.aLE===c.id?`<div style="display:flex;gap:6px;align-items:center"><input type="text" value="${esc(S.aLT)}" placeholder="Paste URL…" style="font-size:12px;padding:3px 6px;width:180px;border:0.5px solid rgba(0,0,0,0.15);border-radius:6px" oninput="S.aLT=this.value"><button onclick="saveAL('${c.id}')" style="font-size:12px;padding:3px 8px">Save</button><button onclick="S.aLE=null;render()" style="font-size:12px;padding:3px 8px">✕</button></div>`:`<button onclick="S.aLE='${c.id}';S.aLT='';render()" style="font-size:12px;background:none;border:none;color:#185FA5;cursor:pointer;padding:0;box-shadow:none">+ asset link</button>`;
-  const campCats=(c.cats||[]).map(cat=>`<span class="cat-pill">${esc(cat)}<button class="cat-pill-btn" onclick="removeCampCat('${c.id}','${cat}')">✕</button></span>`).join('');
-  const remaining=CAMP_CATS.filter(cat=>!(c.cats||[]).includes(cat));
-  const addDrop=remaining.length?`<select class="sml" onchange="if(this.value){addCampCat('${c.id}',this.value);this.value=''}" style="font-size:11px;padding:2px 5px"><option value="">+ category</option>${remaining.map(cat=>`<option value="${cat}">${cat}</option>`).join('')}</select>`:'';
+  const campCats=(c.cats||[]).map(cat=>`<span style="display:inline-block;padding:1px 6px;border-radius:100px;font-size:10px;background:#EEEDFE;border:0.5px solid #AFA9EC;color:#3C3489;margin:2px 2px 0 0">${esc(cat)}</span>`).join('');
+  const isEditing=S.editCamp===c.id;
+  const sortedTasks=sortByDue(activeTasks);
+  const archivedCount=c.tasks.filter(t=>t.archived).length;
   return`<div class="card cc" style="--col:${c.color}">
 <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:4px">
-  <div><div style="font-size:14px;font-weight:500">${esc(c.name)}</div><div style="font-size:11px;color:#999;margin-top:2px">${c.venue} · ${fd(c.start)} – ${fd(c.end)} · ${dls}</div></div>
-  ${cBdg(c.status)}
+  <div style="flex:1;min-width:0"><div style="font-size:14px;font-weight:500">${esc(c.name)}</div><div style="font-size:11px;color:#999;margin-top:2px">${c.venue} · ${fd(c.start)} – ${fd(c.end)} · ${dls}</div></div>
+  <div style="display:flex;gap:6px;align-items:center;flex-shrink:0">
+    ${cBdg(c.status)}
+    <button onclick="S.editCamp=S.editCamp==='${c.id}'?null:'${c.id}';render()" style="font-size:11px;padding:2px 8px;color:#888;border-color:rgba(0,0,0,0.15)">${isEditing?'Close':'Edit'}</button>
+  </div>
 </div>
 <div style="font-size:12px;color:#666;margin:6px 0 4px">${esc(c.desc)}</div>
+<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-bottom:6px">${campCats}</div>
 <div class="prog"><div class="pf" style="width:${pr}%;background:${c.color}"></div></div>
 <div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:6px">
-  <span style="font-size:11px;color:#999">${done}/${c.tasks.length} tasks · ${pr}%</span>
+  <span style="font-size:11px;color:#999">${done}/${activeTasks.length} tasks · ${pr}%${archivedCount?` · ${archivedCount} archived`:''}</span>
   <div>${team.map(a=>`<span class="chip">${a}</span>`).join('')}</div>
   ${lnk}
 </div>
-<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px;margin-top:8px;padding-top:8px;border-top:0.5px solid rgba(0,0,0,0.06)">
-  <span style="font-size:11px;color:#888;margin-right:2px">Categories:</span>${campCats}${addDrop}
-</div>
-${showT?`<hr><div style="padding:0 0 4px">${c.tasks.map(t=>tRow(t,c.id,false)).join('')}${addTForm(c.id,false)}</div>`:''}</div>`;
+${isEditing?campEditForm(c):''}
+${showT?`<hr><div style="padding:0 0 4px">${sortedTasks.map(t=>tRow(t,c.id,false)).join('')}${addTForm(c.id,false)}</div>`:''}</div>`;
 }
 
 function rDash(){
-  const allCT=S.campaigns.flatMap(c=>c.tasks.map(t=>({...t,cid:c.id,cn:c.name})));
-  const allT=[...allCT,...S.generalTasks.map(t=>({...t,cid:'gen',cn:'General tasks'}))];
+  const allCT=S.campaigns.flatMap(c=>c.tasks.filter(t=>!t.archived).map(t=>({...t,cid:c.id,cn:c.name})));
+  const allT=[...allCT,...S.generalTasks.filter(t=>!t.archived).map(t=>({...t,cid:'gen',cn:'General tasks'}))];
   const ov=allT.filter(t=>t.status!=='done'&&isOv(t.due));
   const soon=allT.filter(t=>{const d=du(t.due);return t.status!=='done'&&d>=0&&d<=7;});
   const attn=[...ov,...soon.filter(t=>!ov.find(o=>o.id===t.id))];
   const active=S.campaigns.filter(c=>c.status==='active').length;
   const planned=S.campaigns.filter(c=>c.status==='planned').length;
-  const genOpen=S.generalTasks.filter(t=>t.status!=='done').length;
+  const genOpen=S.generalTasks.filter(t=>t.status!=='done'&&!t.archived).length;
   const prq=S.requests.filter(r=>r.status==='pending').length;
   const WS=new Date('2026-04-01'),WD=121;
   return`<div class="mets"><div class="met"><div class="ml">Active campaigns</div><div class="mv">${active}</div></div><div class="met"><div class="ml">Planned</div><div class="mv">${planned}</div></div><div class="met"><div class="ml">Due this week</div><div class="mv" style="${soon.length?'color:#633806':''}">${soon.length}</div></div><div class="met"><div class="ml">Overdue</div><div class="mv" style="${ov.length?'color:#791F1F':''}">${ov.length}</div></div><div class="met"><div class="ml">General open</div><div class="mv">${genOpen}</div></div>${prq?`<div class="met"><div class="ml">Pending requests</div><div class="mv" style="color:#633806">${prq}</div></div>`:''}</div>
@@ -455,12 +533,15 @@ ${f.map(c=>cCard(c,true)).join('')}`;
 
 function rGeneral(){
   const f=S.fAss==='all'?S.generalTasks:S.generalTasks.filter(t=>t.who.includes(S.fAss));
-  const filtered=S.fGenCat==='all'?f:f.filter(t=>(t.cats||[]).includes(S.fGenCat));
+  const active=f.filter(t=>!t.archived);
+  const filtered=S.fGenCat==='all'?active:active.filter(t=>(t.cats||[]).includes(S.fGenCat));
+  const sorted=sortByDue(filtered);
   const byCat={};
-  filtered.forEach(t=>{const c=(t.cats&&t.cats[0])||'Other';if(!byCat[c])byCat[c]=[];byCat[c].push(t);});
-  const open=S.generalTasks.filter(t=>t.status!=='done').length;
-  const done=S.generalTasks.filter(t=>t.status==='done').length;
-  return`<div style="font-size:12px;color:#888;margin-bottom:1rem">Tasks not tied to a campaign. <span style="font-weight:500;color:#555">${open} open · ${done} done</span></div>
+  sorted.forEach(t=>{const c=(t.cats&&t.cats[0])||'Other';if(!byCat[c])byCat[c]=[];byCat[c].push(t);});
+  const open=active.filter(t=>t.status!=='done').length;
+  const done=active.filter(t=>t.status==='done').length;
+  const archCount=S.generalTasks.filter(t=>t.archived).length;
+  return`<div style="font-size:12px;color:#888;margin-bottom:1rem">Tasks not tied to a campaign. <span style="font-weight:500;color:#555">${open} open · ${done} done${archCount?` · ${archCount} archived`:''}</span></div>
 <div class="fr"><select onchange="S.fAss=this.value;render()" style="font-size:13px;padding:5px 8px"><option value="all">All team members</option>${S.team.map(m=>`<option value="${m}"${S.fAss===m?' selected':''}>${m}</option>`).join('')}</select><select onchange="S.fGenCat=this.value;render()" style="font-size:13px;padding:5px 8px"><option value="all">All categories</option>${GEN_CATS.map(c=>`<option value="${c}"${S.fGenCat===c?' selected':''}>${c}</option>`).join('')}</select><span style="font-size:12px;color:#999">${filtered.length} task${filtered.length!==1?'s':''}</span></div>
 ${filtered.length===0?'<div style="padding:1.5rem;text-align:center;color:#bbb;font-size:13px">No tasks found.</div>':Object.entries(byCat).map(([cat,tasks])=>`<div style="margin-bottom:1.25rem"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div class="dot" style="background:#888"></div><span style="font-size:13px;font-weight:500">${esc(cat)}</span></div><div class="card" style="padding:0 14px">${tasks.map(t=>tRow(t,'gen',true)).join('')}</div></div>`).join('')}
 <div class="card" style="padding:0 14px">${addTForm('gen',true)}</div>`;
@@ -470,13 +551,24 @@ function rTasks(){
   const catM={tasks:null,pr:'pr-kol',dining:'group-dining',tourism:'tourism'};
   const cat=catM[S.tab];
   const campCards=cat?S.campaigns.filter(c=>(c.cats||[]).includes(cat)):[];
-  const all=S.campaigns.flatMap(c=>c.tasks.filter(t=>!cat||(t.cats||[]).includes(cat)).map(t=>({...t,cid:c.id,cn:c.name,cc:c.color})));
+  const all=S.campaigns.flatMap(c=>sortByDue(c.tasks.filter(t=>!t.archived&&(!cat||(t.cats||[]).includes(cat)))).map(t=>({...t,cid:c.id,cn:c.name,cc:c.color})));
   const f=S.fAss==='all'?all:all.filter(t=>t.who.includes(S.fAss));
   const byC={};
   f.forEach(t=>{if(!byC[t.cid])byC[t.cid]={name:t.cn,color:t.cc,tasks:[]};byC[t.cid].tasks.push(t);});
   return`<div class="fr"><select onchange="S.fAss=this.value;render()" style="font-size:13px;padding:5px 8px"><option value="all">All team members</option>${S.team.map(m=>`<option value="${m}"${S.fAss===m?' selected':''}>${m}</option>`).join('')}</select><span style="font-size:12px;color:#999">${f.length} task${f.length!==1?'s':''}</span></div>
 ${campCards.length?`<div style="font-size:12px;font-weight:500;color:#888;margin-bottom:8px;text-transform:uppercase;letter-spacing:0.05em">Campaigns in this category</div>${campCards.map(c=>cCard(c,false)).join('')}<hr style="margin-bottom:1.25rem">`:''}
 ${f.length===0?'<div style="padding:2rem;text-align:center;color:#bbb;font-size:13px">No tasks found.</div>':Object.entries(byC).map(([cid,g])=>`<div style="margin-bottom:1.25rem"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div class="dot" style="background:${g.color}"></div><span style="font-size:13px;font-weight:500">${esc(g.name)}</span></div><div class="card" style="padding:0 14px">${g.tasks.map(t=>tRow(t,cid,false)).join('')}${addTForm(cid,false)}</div></div>`).join('')}`;
+}
+
+function rArchived(){
+  const archCampTasks=S.campaigns.flatMap(c=>c.tasks.filter(t=>t.archived).map(t=>({...t,cid:c.id,cn:c.name,cc:c.color})));
+  const archGenTasks=S.generalTasks.filter(t=>t.archived).map(t=>({...t,cid:'gen',cn:'General tasks',cc:'#888'}));
+  const all=[...archCampTasks,...archGenTasks];
+  const sorted=sortByDue(all);
+  const byC={};
+  sorted.forEach(t=>{const key=t.cid;if(!byC[key])byC[key]={name:t.cn,color:t.cc,tasks:[]};byC[key].tasks.push(t);});
+  return`<div style="font-size:12px;color:#888;margin-bottom:1rem">Archived tasks are removed from active views but preserved here for reference. <span style="font-weight:500;color:#555">${all.length} archived task${all.length!==1?'s':''}</span></div>
+${all.length===0?'<div style="padding:2rem;text-align:center;color:#bbb;font-size:13px">No archived tasks yet. Archive a task from its expanded view.</div>':Object.entries(byC).map(([cid,g])=>`<div style="margin-bottom:1.25rem"><div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div class="dot" style="background:${g.color}"></div><span style="font-size:13px;font-weight:500">${esc(g.name)}</span></div><div class="card" style="padding:0 14px;opacity:0.8">${g.tasks.map(t=>tRow(t,cid,cid==='gen')).join('')}</div></div>`).join('')}`;
 }
 
 function rReqs(){
@@ -517,18 +609,28 @@ function rBrief(){
 }
 
 function render(){
-  const tabs=[{id:'dashboard',l:'Dashboard'},{id:'campaigns',l:'Campaigns'},{id:'tasks',l:'All tasks'},{id:'general',l:'General tasks'},{id:'pr',l:'PR / KOL'},{id:'dining',l:'Group dining'},{id:'tourism',l:'Tourism'},{id:'requests',l:'Requests'},{id:'results',l:'Results'},{id:'brief',l:'Brief generator'}];
+  const archCount=S.campaigns.flatMap(c=>c.tasks).filter(t=>t.archived).length+S.generalTasks.filter(t=>t.archived).length;
+  const tabs=[
+    {id:'dashboard',l:'Dashboard'},{id:'campaigns',l:'Campaigns'},{id:'tasks',l:'All tasks'},
+    {id:'general',l:'General tasks'},{id:'pr',l:'PR / KOL'},{id:'dining',l:'Group dining'},
+    {id:'tourism',l:'Tourism'},{id:'requests',l:'Requests'},{id:'results',l:'Results'},
+    {id:'archived',l:`Archived${archCount?` (${archCount})`:'`'}`},{id:'brief',l:'Brief generator'}
+  ];
+  // fix backtick typo in archived label
+  const fixedTabs=tabs.map(t=>t.id==='archived'?{id:'archived',l:`Archived${archCount?` (${archCount})`:''}`}:t);
   let v='';
   if(S.tab==='dashboard')v=rDash();
   else if(S.tab==='campaigns')v=rCamps();
   else if(['tasks','pr','dining','tourism'].includes(S.tab))v=rTasks();
   else if(S.tab==='general')v=rGeneral();
+  else if(S.tab==='archived')v=rArchived();
   else if(S.tab==='requests')v=rReqs();
   else if(S.tab==='results')v=rRes();
   else if(S.tab==='brief')v=rBrief();
-  document.getElementById('dash-content').innerHTML=`<nav class="tabs">${tabs.map(t=>`<button class="tab${S.tab===t.id?' on':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</nav>${v}`;
+  document.getElementById('dash-content').innerHTML=`<nav class="tabs">${fixedTabs.map(t=>`<button class="tab${S.tab===t.id?' on':''}" onclick="setTab('${t.id}')">${t.l}</button>`).join('')}</nav>${v}`;
 }
 
+// Event handlers
 window.setTab=t=>{S.tab=t;render();};
 window.togT=(cid,tid)=>{const c=S.campaigns.find(c=>c.id===cid);const t=c.tasks.find(t=>t.id===tid);t.status=t.status==='done'?'not-started':'done';saveToBin();render();};
 window.togG=tid=>{const t=S.generalTasks.find(t=>t.id===tid);t.status=t.status==='done'?'not-started':'done';saveToBin();render();};
@@ -541,26 +643,40 @@ window.setGBlk=(tid,v)=>{S.generalTasks.find(t=>t.id===tid).blk=v;saveToBin();};
 window.setDue=(cid,tid,v)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).due=v;saveToBin();render();};
 window.setGDue=(tid,v)=>{S.generalTasks.find(t=>t.id===tid).due=v;saveToBin();render();};
 window.setGNotes=(tid,v)=>{S.generalTasks.find(t=>t.id===tid).notes=v;saveToBin();};
+// Campaign editing
+window.setCampName=(cid,v)=>{S.campaigns.find(c=>c.id===cid).name=v;saveToBin();};
+window.setCampField=(cid,f,v)=>{S.campaigns.find(c=>c.id===cid)[f]=v;saveToBin();render();};
+// Category management
 window.addTaskCat=(cid,tid,cat)=>{const t=S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid);if(!t.cats)t.cats=[];if(!t.cats.includes(cat))t.cats.push(cat);saveToBin();render();};
 window.removeTaskCat=(cid,tid,cat)=>{const t=S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid);t.cats=(t.cats||[]).filter(c=>c!==cat);if(!t.cats.length)t.cats=['campaigns'];saveToBin();render();};
 window.addGenTaskCat=(tid,cat)=>{const t=S.generalTasks.find(t=>t.id===tid);if(!t.cats)t.cats=[];if(!t.cats.includes(cat))t.cats.push(cat);saveToBin();render();};
 window.removeGenTaskCat=(tid,cat)=>{const t=S.generalTasks.find(t=>t.id===tid);t.cats=(t.cats||[]).filter(c=>c!==cat);if(!t.cats.length)t.cats=['Other'];saveToBin();render();};
 window.addCampCat=(cid,cat)=>{const c=S.campaigns.find(c=>c.id===cid);if(!c.cats)c.cats=[];if(!c.cats.includes(cat))c.cats.push(cat);saveToBin();render();};
 window.removeCampCat=(cid,cat)=>{const c=S.campaigns.find(c=>c.id===cid);c.cats=(c.cats||[]).filter(x=>x!==cat);if(!c.cats.length)c.cats=['campaigns'];saveToBin();render();};
+// Assignee toggles
 window.toggleTaskWho=(cid,tid,m)=>{const t=S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid);t.who=t.who.includes(m)?t.who.filter(x=>x!==m):[...t.who,m];saveToBin();render();};
 window.toggleGenWho=(tid,m)=>{const t=S.generalTasks.find(t=>t.id===tid);t.who=t.who.includes(m)?t.who.filter(x=>x!==m):[...t.who,m];saveToBin();render();};
 window.togAtWho=m=>{S.atWho=S.atWho.includes(m)?S.atWho.filter(x=>x!==m):[...S.atWho,m];render();};
 window.togAtCat=c=>{S.atCats=S.atCats.includes(c)?S.atCats.filter(x=>x!==c):[...S.atCats,c];render();};
 window.togRqWho=m=>{if(!S.rqF.who)S.rqF.who=[];S.rqF.who=S.rqF.who.includes(m)?S.rqF.who.filter(x=>x!==m):[...S.rqF.who,m];render();};
-window.saveTsk=(cid)=>{if(!S.atName.trim())return;const c=S.campaigns.find(c=>c.id===cid);c.tasks.push({id:'t'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['campaigns'],blk:''});S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['campaigns'];saveToBin();render();};
-window.saveGen=()=>{if(!S.atName.trim())return;S.generalTasks.push({id:'gen'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['Other'],blk:'',notes:S.agNotes});S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['Other'];S.agNotes='';saveToBin();render();};
+// Archive / unarchive / delete — campaign tasks
+window.archiveTask=(cid,tid)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).archived=true;S.exp=null;saveToBin();render();};
+window.unarchiveTask=(cid,tid)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).archived=false;saveToBin();render();};
+window.deleteTask=(cid,tid)=>{if(!confirm('Permanently delete this task? This cannot be undone.'))return;const c=S.campaigns.find(c=>c.id===cid);c.tasks=c.tasks.filter(t=>t.id!==tid);S.exp=null;saveToBin();render();};
+// Archive / unarchive / delete — general tasks
+window.archiveGenTask=tid=>{S.generalTasks.find(t=>t.id===tid).archived=true;S.exp=null;saveToBin();render();};
+window.unarchiveGenTask=tid=>{S.generalTasks.find(t=>t.id===tid).archived=false;saveToBin();render();};
+window.deleteGenTask=tid=>{if(!confirm('Permanently delete this task?'))return;S.generalTasks=S.generalTasks.filter(t=>t.id!==tid);S.exp=null;saveToBin();render();};
+// Save task/general
+window.saveTsk=(cid)=>{if(!S.atName.trim())return;const c=S.campaigns.find(c=>c.id===cid);c.tasks.push({id:'t'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['campaigns'];saveToBin();render();};
+window.saveGen=()=>{if(!S.atName.trim())return;S.generalTasks.push({id:'gen'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['Other'],blk:'',notes:S.agNotes,archived:false});S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['Other'];S.agNotes='';saveToBin();render();};
 window.upR=(cid,f,v)=>{const c=S.campaigns.find(c=>c.id===cid);if(!c.results)c.results={covers:'',promo:'',alac:'',notes:''};c.results[f]=v;saveToBin();};
 window.saveAL=(cid)=>{if(S.aLT){S.campaigns.find(c=>c.id===cid).link=S.aLT;S.aLE=null;S.aLT='';saveToBin();render();}};
 window.subReq=()=>{if(!S.rqF.name.trim())return;S.requests.push({id:'r'+uid(),name:S.rqF.name.trim(),details:S.rqF.details,cid:S.rqF.cid,who:[...(S.rqF.who||[])],due:S.rqF.due,by:S.rqF.by,status:'pending',rejComment:'',date:new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'})});S.rqF={name:'',details:'',cid:'',who:[],due:'',by:''};saveToBin();render();};
-window.accReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='accepted';const whoArr=Array.isArray(r.who)?r.who:(r.who?r.who.split(',').map(s=>s.trim()).filter(Boolean):[]);if(r.cid){const c=S.campaigns.find(c=>c.id===r.cid);if(c)c.tasks.push({id:'t'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:`Added from request by ${r.by}. ${r.details||''}`.trim(),d:r.date}],cats:['campaigns'],blk:''});}else{S.generalTasks.push({id:'gen'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:`Added from request by ${r.by}. ${r.details||''}`.trim(),d:r.date}],cats:['Other'],blk:'',notes:r.details||''});}saveToBin();render();};
+window.accReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='accepted';const whoArr=Array.isArray(r.who)?r.who:(r.who?r.who.split(',').map(s=>s.trim()).filter(Boolean):[]);if(r.cid){const c=S.campaigns.find(c=>c.id===r.cid);if(c){c.tasks.push({id:'t'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:`Added from request by ${r.by}. ${r.details||''}`.trim(),d:r.date}],cats:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);}}else{S.generalTasks.push({id:'gen'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:`Added from request by ${r.by}. ${r.details||''}`.trim(),d:r.date}],cats:['Other'],blk:'',notes:r.details||'',archived:false});}saveToBin();render();};
 window.rejReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='rejected';r.rejComment=S.rjC[rid]||'';saveToBin();render();};
 window.readFile=async(inp)=>{const file=inp.files[0];if(!file)return;const ext=file.name.split('.').pop().toLowerCase();if(['txt','md','csv'].includes(ext)){const rd=new FileReader();rd.onload=e=>{S.addTxt+=(S.addTxt?'\n\n':'')+e.target.result;render();};rd.readAsText(file);}else if(ext==='docx'&&typeof mammoth!=='undefined'){const rd=new FileReader();rd.onload=async e=>{try{const res=await mammoth.extractRawText({arrayBuffer:e.target.result});S.addTxt+=(S.addTxt?'\n\n':'')+res.value;render();}catch(err){alert('Could not read .docx — paste the text instead.');}};rd.readAsArrayBuffer(file);}else{alert('Supported: .txt, .md, .docx\nFor PDFs, copy-paste the text directly.');}};
-window.addAI=async()=>{if(!S.addTxt.trim())return;S.addLoad=true;render();try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Campaign parser for 1-Arden Singapore. Venues: Arden Bar, Kaarla, Oumi, Sol and Luna. Team: ${S.team.join(', ')}. Today: 2026-04-15.\n\nParse into JSON only:\n{"id":"kebab","name":"Name","cats":["campaigns"],"venue":"All Venues","status":"planned","start":"YYYY-MM-DD","end":"YYYY-MM-DD","desc":"summary","link":"","color":"#185FA5","tasks":[{"id":"t-x","name":"Task","status":"not-started","who":["Daryl"],"due":"YYYY-MM-DD","comments":[],"cats":["campaigns"],"blk":""}],"results":{"covers":"","promo":"","alac":"","notes":""}}\n\nBrief:\n${S.addTxt}`}]})});const d=await r.json();const camp=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());S.campaigns.push(camp);S.showAdd=false;S.addTxt='';S.tab='campaigns';saveToBin();}catch(e){alert('Could not parse brief.');}S.addLoad=false;render();};
+window.addAI=async()=>{if(!S.addTxt.trim())return;S.addLoad=true;render();try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Campaign parser for 1-Arden Singapore. Venues: Arden Bar, Kaarla, Oumi, Sol and Luna. Team: ${S.team.join(', ')}. Today: 2026-04-15.\n\nParse into JSON only:\n{"id":"kebab","name":"Name","cats":["campaigns"],"venue":"All Venues","status":"planned","start":"YYYY-MM-DD","end":"YYYY-MM-DD","desc":"summary","link":"","color":"#185FA5","tasks":[{"id":"t-x","name":"Task","status":"not-started","who":["Daryl"],"due":"YYYY-MM-DD","comments":[],"cats":["campaigns"],"blk":"","archived":false}],"results":{"covers":"","promo":"","alac":"","notes":""}}\n\nBrief:\n${S.addTxt}`}]})});const d=await r.json();const camp=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());camp.tasks=sortByDue(camp.tasks);S.campaigns.push(camp);S.showAdd=false;S.addTxt='';S.tab='campaigns';saveToBin();}catch(e){alert('Could not parse brief.');}S.addLoad=false;render();};
 window.genBrief=async()=>{if(!S.briefTxt.trim())return;S.briefLoad=true;render();try{const cl=S.campaigns.map(c=>`- ${c.name} (${c.venue}, ${c.status}, ${pct(c)}% complete)`).join('\n');const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:`Assistant Marketing Manager, 1-Arden CapitaSpring Singapore. Venues: Arden Bar, Kaarla, Oumi, Sol and Luna. Today: 15 Apr 2026.\n\nCampaigns:\n${cl}\n\nFrom meeting notes, write a weekly brief: Campaign Status, Key Updates, Action Items, Upcoming Deadlines, Notes.\n\nNotes:\n${S.briefTxt}`}]})});const d=await r.json();S.briefOut=d.content[0].text;}catch(e){S.briefOut='Error generating brief.';}S.briefLoad=false;render();};
 
 function startPolling(){
