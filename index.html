@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>1-Arden</title>
+<title>1-Group Marketing Team Dashboard</title>
 <script src="https://unpkg.com/mammoth/mammoth.browser.min.js"></script>
 <style>
 :root{--red:#C8131A;--black:#111;--bg:#F0EDE7;--card:#fff;--border:rgba(0,0,0,0.09);--bd2:rgba(0,0,0,0.18);--muted:rgba(17,17,17,0.5);--faint:rgba(0,0,0,0.055)}
@@ -132,7 +132,7 @@ input[type=text],input[type=date],input[type=number],textarea,select{font-family
 
 <div id="app">
   <div class="ph">
-    <div class="ph-logo">1-Arden · Campaign Dashboard</div>
+    <div class="ph-logo">1-Group Marketing Team Dashboard — 1-Spring | Group Dining</div>
     <div class="ph-right">
       <button onclick="manualRefresh()" style="background:transparent;border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);font-size:11px;padding:5px 12px">Refresh</button>
       <button onclick="showShareURL()" style="background:transparent;border-color:rgba(255,255,255,0.2);color:rgba(255,255,255,0.7);font-size:11px;padding:5px 12px">Share</button>
@@ -213,11 +213,14 @@ function migrate(arr,isGen){
     if(!item.links&&item.link!==undefined){item.links=item.link?[{label:'Asset folder',url:item.link}]:[];delete item.link;}
     if(!item.links)item.links=[];
     if(!item.comments)item.comments=[];
+    if(!item.venues){item.venues=item.venue?[item.venue]:['All Venues'];}
+    if(item.image===undefined)item.image=null;
     item.comments=item.comments.map(c=>c.id?c:{id:uid(),name:c.a||c.name||'',text:c.t||c.text||'',date:c.d||c.date||'',editedDate:null});
     if(item.tasks)item.tasks=item.tasks.map(t=>{
       if(!t.cats)t.cats=t.cat?[t.cat]:['campaigns'];
       if(t.archived===undefined)t.archived=false;
       if(!t.comments)t.comments=[];
+      if(!t.links)t.links=[];
       t.comments=t.comments.map(c=>c.id?c:{id:uid(),name:c.a||c.name||'',text:c.t||c.text||'',date:c.d||c.date||'',editedDate:null});
       return t;
     });
@@ -237,6 +240,7 @@ async function loadFromBin(silent){
       S.requests=rec.requests||S.requests;
       if(rec.team&&rec.team.length)S.team=rec.team;
       if(rec.categories&&rec.categories.length)S.categories=rec.categories;
+      if(!(S.openCamps instanceof Set))S.openCamps=new Set();
       return true;
     }
   }catch(e){console.error(e);}
@@ -340,12 +344,11 @@ let S={
   briefTxt:'',briefOut:'',briefLoad:false,
   cDraft:{},aLE:null,
   addTF:null,atName:'',atWho:[],atDue:'',atCats:['campaigns'],agNotes:'',
-  editCamp:null,cName:'',editCom:null,editComText:'',editComName:'',
+  editCamp:null,openCamps:new Set(),dragCampSrc:null,cName:'',editCom:null,editComText:'',editComName:'',
   newCamp:{name:'',venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns']},
   requests:[],rqF:{name:'',details:'',cid:'',who:[],due:'',by:''},rjC:{},
   team:['Daryl','Philicia','Zul','Keisha','Jit Seng'],
   categories:[
-    {id:'campaigns',label:'Campaigns'},
     {id:'pr-kol',label:'PR / KOL'},
     {id:'group-dining',label:'Group Dining'},
     {id:'tourism',label:'Tourism'},
@@ -484,7 +487,7 @@ function tExp(t,cid,isGen){
   const whoRow=S.team.map(m=>'<span class="who-chip'+(t.who.includes(m)?' sel':'')+'" onclick="'+(isGen?'toggleGenWho(\''+t.id+'\',\''+m+'\')':'toggleTaskWho(\''+cid+'\',\''+t.id+'\',\''+m+'\')')+'">'+esc(m)+'</span>').join('');
   const archBtn=t.archived?'<button onclick="'+(isGen?'unarchiveGenTask(\''+t.id+'\')':'unarchiveTask(\''+cid+'\',\''+t.id+'\')')+'\" style="font-size:11px;padding:3px 9px;color:#1A4FA0;border-color:rgba(26,79,160,0.25)">Unarchive</button>':'<button onclick="'+(isGen?'archiveGenTask(\''+t.id+'\')':'archiveTask(\''+cid+'\',\''+t.id+'\')')+'\" style="font-size:11px;padding:3px 9px;color:var(--muted)">Archive</button>';
   const delBtn='<button onclick="'+(isGen?'deleteGenTask(\''+t.id+'\')':'deleteTask(\''+cid+'\',\''+t.id+'\')')+'\" style="font-size:11px;padding:3px 9px;color:var(--red);border-color:rgba(200,19,26,0.25)">Delete</button>';
-  return '<div class="tx"><div class="g2" style="margin-bottom:10px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Status</div><select class="sml" style="width:100%" onchange="'+fn+'">'+sts.map(s=>'<option value="'+s+'"'+(t.status===s?' selected':'')+'>'+stl[s]+'</option>').join('')+'</select>'+(t.status==='blocked'?'<input type="text" value="'+esc(t.blk||'')+'" placeholder="Reason…" style="width:100%;font-size:12px;padding:4px 7px;border:1px solid var(--bd2);border-radius:3px;margin-top:6px" oninput="'+bFn+'">':'')+'</div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Due date</div><input type="date" value="'+(t.due||'')+'" class="sml" style="width:100%" onchange="'+dFn+'"></div></div><div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Assigned to</div><div style="display:flex;flex-wrap:wrap">'+whoRow+'</div></div><div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+catPills+addDrop+'</div></div>'+(isGen?'<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Notes</div><input type="text" value="'+esc(t.notes||'')+'" placeholder="Supplier, specs, context…" style="width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px;margin-bottom:10px" oninput="setGNotes(\''+t.id+'\',this.value)">':'')+(isGen?renderComments(t.comments,'gen',null,t.id):renderComments(t.comments,'task',cid,t.id))+'<div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)">'+archBtn+delBtn+'</div></div>';
+  return '<div class="tx"><div class="g2" style="margin-bottom:10px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Status</div><select class="sml" style="width:100%" onchange="'+fn+'">'+sts.map(s=>'<option value="'+s+'"'+(t.status===s?' selected':'')+'>'+stl[s]+'</option>').join('')+'</select>'+(t.status==='blocked'?'<input type="text" value="'+esc(t.blk||'')+'" placeholder="Reason…" style="width:100%;font-size:12px;padding:4px 7px;border:1px solid var(--bd2);border-radius:3px;margin-top:6px" oninput="'+bFn+'">':'')+'</div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Due date</div><input type="date" value="'+(t.due||'')+'" class="sml" style="width:100%" onchange="'+dFn+'"></div></div><div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Assigned to</div><div style="display:flex;flex-wrap:wrap">'+whoRow+'</div></div><div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+catPills+addDrop+'</div></div>'+(isGen?'<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Notes</div><input type="text" value="'+esc(t.notes||'')+'" placeholder="Supplier, specs, context…" style="width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px;margin-bottom:10px" oninput="setGNotes(\''+t.id+'\',this.value)">':'')+(isGen?renderComments(t.comments,'gen',null,t.id):renderComments(t.comments,'task',cid,t.id))+'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--faint)"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Links</div>'+(t.links&&t.links.length?t.links.map((l,i)=>'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="color:var(--muted)">&#8226;</span><a href="'+esc(l.url)+'" target="_blank" style="font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(l.label||l.url)+'</a><button onclick="removeTaskLink(\''+( isGen?'gen':cid)+'\',\''+t.id+'\',' +i+')" style="font-size:11px;padding:1px 7px;color:var(--red);border-color:rgba(200,19,26,0.2);letter-spacing:0">&#10005;</button></div>').join(''):+(c.image?'<img src="'+c.image+'" style="float:right;width:70px;height:99px;object-fit:cover;border-radius:3px;border:1px solid var(--border);margin:0 0 10px 14px">':'')+'<div style="font-size:12px;color:rgba(0,0,0,0.3)">No links yet.</div>')+'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input type="text" id="tlbl-'+t.id+'" placeholder="Display text&#8230;" style="flex:1;min-width:90px;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px"><input type="text" id="turl-'+t.id+'" placeholder="https://&#8230;" style="flex:2;min-width:130px;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px"><button onclick="addTaskLink(\''+( isGen?'gen':cid)+'\',\''+t.id+'\')" style="font-size:11px;padding:4px 10px">Add</button></div></div>'+'<div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)">'+archBtn+delBtn+'</div></div>';
 }
 
 function addTForm(cid,isGen){
@@ -500,7 +503,7 @@ function campEditForm(c){
   const cats=(c.cats||[]).map(cat=>'<span class="cat-pill">'+esc(cat)+'<button class="cat-pill-btn" onclick="removeCampCat(\''+c.id+'\',\''+cat+'\')">✕</button></span>').join('');
   const remaining=S.categories.filter(cat=>!(c.cats||[]).includes(cat.id));
   const addDrop=remaining.length?'<select class="sml" onchange="if(this.value){addCampCat(\''+c.id+'\',this.value);this.value=\'\'}" style="font-size:11px;padding:2px 5px"><option value="">+ category</option>'+remaining.map(cat=>'<option value="'+esc(cat.id)+'">'+esc(cat.label)+'</option>').join('')+'</select>':'';
-  return '<div class="ap" style="margin-top:12px"><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Campaign name</div><input type="text" value="'+esc(c.name)+'" style="width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--bd2);border-radius:3px" oninput="setCampName(\''+c.id+'\',this.value)"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Status</div><select class="sml" style="width:100%" onchange="setCampField(\''+c.id+'\',\'status\',this.value)"><option value="active"'+(c.status==='active'?' selected':'')+'>Active</option><option value="planned"'+(c.status==='planned'?' selected':'')+'>Planned</option><option value="done"'+(c.status==='done'?' selected':'')+'>Done</option></select></div></div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Start date</div><input type="date" value="'+(c.start||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="setCampField(\''+c.id+'\',\'start\',this.value)"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">End date</div><input type="date" value="'+(c.end||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="setCampField(\''+c.id+'\',\'end\',this.value)"></div></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Venue</div><select class="sml" style="width:100%" onchange="setCampField(\''+c.id+'\',\'venue\',this.value)"><option value="All Venues"'+(c.venue==='All Venues'?' selected':'')+'>All Venues</option><option value="Arden Bar"'+(c.venue==='Arden Bar'?' selected':'')+'>Arden Bar</option><option value="Kaarla"'+(c.venue==='Kaarla'?' selected':'')+'>Kaarla</option><option value="Oumi"'+(c.venue==='Oumi'?' selected':'')+'>Oumi</option><option value="Sol and Luna"'+(c.venue==='Sol and Luna'?' selected':'')+'>Sol and Luna</option></select></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Description</div><textarea style="width:100%;min-height:60px;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical" oninput="setCampField(\''+c.id+'\',\'desc\',this.value)">'+esc(c.desc)+'</textarea></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Accent colour</div><input type="color" value="'+(c.color||'#C8131A')+'" style="width:40px;height:28px;padding:0;border:1px solid var(--bd2);border-radius:3px;cursor:pointer" onchange="setCampField(\''+c.id+'\',\'color\',this.value)"></div><div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+cats+addDrop+'</div></div><button onclick="S.editCamp=null;render()" style="font-size:12px;padding:5px 12px">Done</button></div>';
+  return '<div class="ap" style="margin-top:12px"><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Campaign name</div><input type="text" value="'+esc(c.name)+'" style="width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--bd2);border-radius:3px" oninput="setCampName(\''+c.id+'\',this.value)"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Status</div><select class="sml" style="width:100%" onchange="setCampField(\''+c.id+'\',\'status\',this.value)"><option value="active"'+(c.status==='active'?' selected':'')+'>Active</option><option value="planned"'+(c.status==='planned'?' selected':'')+'>Planned</option><option value="done"'+(c.status==='done'?' selected':'')+'>Done</option></select></div></div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Start date</div><input type="date" value="'+(c.start||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="setCampField(\''+c.id+'\',\'start\',this.value)"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">End date</div><input type="date" value="'+(c.end||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="setCampField(\''+c.id+'\',\'end\',this.value)"></div></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Venues</div><div style=\"display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px\">'+getCampVenueChips(c.id,c.venues||[])+'</div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Description</div><textarea style="width:100%;min-height:60px;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical" oninput="setCampField(\''+c.id+'\',\'desc\',this.value)">'+esc(c.desc)+'</textarea></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Accent colour</div><input type="color" value="'+(c.color||'#C8131A')+'" style="width:40px;height:28px;padding:0;border:1px solid var(--bd2);border-radius:3px;cursor:pointer" onchange="setCampField(\''+c.id+'\',\'color\',this.value)"></div><div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+cats+addDrop+'</div></div><button onclick="S.editCamp=null;render()" style="font-size:12px;padding:5px 12px">Done</button></div>';
 }
 
 function newCampForm(){
@@ -508,10 +511,11 @@ function newCampForm(){
   const cats=(nc.cats||[]).map(cat=>'<span class="cat-pill">'+esc(cat)+'<button class="cat-pill-btn" onclick="S.newCamp.cats=S.newCamp.cats.filter(x=>x!==\''+cat+'\');render()">✕</button></span>').join('');
   const remaining=S.categories.filter(cat=>!(nc.cats||[]).includes(cat.id));
   const addDrop=remaining.length?'<select class="sml" onchange="if(this.value){S.newCamp.cats=[...S.newCamp.cats,this.value];this.value=\'\';render()}" style="font-size:11px;padding:2px 5px"><option value="">+ category</option>'+remaining.map(cat=>'<option value="'+esc(cat.id)+'">'+esc(cat.label)+'</option>').join('')+'</select>':'';
-  return '<div class="ap"><div style="font-size:13px;font-weight:700;letter-spacing:-0.01em;margin-bottom:12px">Create campaign</div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Campaign name</div><input type="text" value="'+esc(nc.name)+'" placeholder="Campaign name…" style="width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--bd2);border-radius:3px" oninput="S.newCamp.name=this.value"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Status</div><select class="sml" style="width:100%" onchange="S.newCamp.status=this.value"><option value="active"'+(nc.status==='active'?' selected':'')+'>Active</option><option value="planned"'+(nc.status==='planned'?' selected':'')+'>Planned</option></select></div></div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Start date</div><input type="date" value="'+(nc.start||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="S.newCamp.start=this.value"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">End date</div><input type="date" value="'+(nc.end||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="S.newCamp.end=this.value"></div></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Venue</div><select class="sml" style="width:100%" onchange="S.newCamp.venue=this.value"><option value="All Venues"'+(nc.venue==='All Venues'?' selected':'')+'>All Venues</option><option value="Arden Bar"'+(nc.venue==='Arden Bar'?' selected':'')+'>Arden Bar</option><option value="Kaarla"'+(nc.venue==='Kaarla'?' selected':'')+'>Kaarla</option><option value="Oumi"'+(nc.venue==='Oumi'?' selected':'')+'>Oumi</option><option value="Sol and Luna"'+(nc.venue==='Sol and Luna'?' selected':'')+'>Sol and Luna</option></select></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Description</div><textarea style="width:100%;min-height:60px;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical" placeholder="Brief description…" oninput="S.newCamp.desc=this.value">'+esc(nc.desc)+'</textarea></div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Accent colour</div><input type="color" value="'+(nc.color||'#C8131A')+'" style="width:40px;height:28px;padding:0;border:1px solid var(--bd2);border-radius:3px;cursor:pointer" onchange="S.newCamp.color=this.value"></div></div><div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+cats+addDrop+'</div></div><div style="display:flex;gap:8px"><button class="primary" onclick="saveNewCamp()">Create campaign</button><button onclick="S.showManual=false;render()">Cancel</button></div></div>';
+  return '<div class="ap"><div style="font-size:13px;font-weight:700;letter-spacing:-0.01em;margin-bottom:12px">Create campaign</div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Campaign name</div><input type="text" value="'+esc(nc.name)+'" placeholder="Campaign name…" style="width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--bd2);border-radius:3px" oninput="S.newCamp.name=this.value"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Status</div><select class="sml" style="width:100%" onchange="S.newCamp.status=this.value"><option value="active"'+(nc.status==='active'?' selected':'')+'>Active</option><option value="planned"'+(nc.status==='planned'?' selected':'')+'>Planned</option></select></div></div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Start date</div><input type="date" value="'+(nc.start||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="S.newCamp.start=this.value"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">End date</div><input type="date" value="'+(nc.end||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="S.newCamp.end=this.value"></div></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Venues</div><div style=\"display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px\">'+getNewCampVenueChips()+'</div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Description</div><textarea style="width:100%;min-height:60px;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical" placeholder="Brief description…" oninput="S.newCamp.desc=this.value">'+esc(nc.desc)+'</textarea></div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Accent colour</div><input type="color" value="'+(nc.color||'#C8131A')+'" style="width:40px;height:28px;padding:0;border:1px solid var(--bd2);border-radius:3px;cursor:pointer" onchange="S.newCamp.color=this.value"></div></div><div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+cats+addDrop+'</div></div><div style="display:flex;gap:8px"><button class="primary" onclick="saveNewCamp()">Create campaign</button><button onclick="S.showManual=false;render()">Cancel</button></div></div>';
 }
 
-function cCard(c,showT){
+function cCard(c,_st){
+  var showT=S.openCamps.has(c.id);
   const activeTasks=c.tasks.filter(t=>!t.archived);
   const pr=pct(c);
   const done=activeTasks.filter(t=>t.status==='done').length;
@@ -523,7 +527,7 @@ function cCard(c,showT){
   const isEditing=S.editCamp===c.id;
   const team=[...new Set(activeTasks.flatMap(t=>t.who))];
 
-  return '<div class="card cc" style="--col:'+c.color+'"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px"><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px">'+esc(c.name)+'</div><div style="font-size:11px;color:var(--muted)">'+esc(c.venue)+' · '+fd(c.start)+' – '+fd(c.end)+' · '+dls+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0">'+cBdg(c.status)+'<button onclick="S.editCamp=S.editCamp===\''+c.id+'\'?null:\''+c.id+'\';render()" style="font-size:11px;padding:2px 8px;color:var(--muted)">'+(isEditing?'Close':'Edit')+'</button></div></div><div style="font-size:12px;color:#555;margin:6px 0 8px">'+esc(c.desc)+'</div>'+(campCats?'<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:2px">'+campCats+'</div>':'')+renderLinks(c)+'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Comments ('+(c.comments||[]).length+')</div>'+renderComments(c.comments||[],'campaign',c.id,null)+'</div>'+'<div class="prog"><div class="pf" style="width:'+pr+'%;background:'+c.color+'"></div></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.03em">'+done+'/'+activeTasks.length+' tasks · '+pr+'%'+(archivedCount?' · '+archivedCount+' archived':'')+'</span><div>'+team.map(a=>'<span class="chip">'+a+'</span>').join('')+'</div></div>'+(isEditing?campEditForm(c):'')+(showT?'<hr><div style="padding:0 0 4px">'+sortedTasks.map(t=>tRow(t,c.id,false)).join('')+addTForm(c.id,false)+'</div>':'')+'</div>';
+  return '<div class="card cc" style="--col:'+c.color+';transition:opacity 0.15s" draggable="true" ondragstart="dragCampStart(\''+c.id+'\')" ondragover="dragCampOver(event,\''+c.id+'\')" ondrop="dragCampDrop(\''+c.id+'\')" ondragend="dragCampEnd()"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px"><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px">'+esc(c.name)+'</div><div style="font-size:11px;color:var(--muted)">'+esc((c.venues||[c.venue||'']).join(', '))+' · '+fd(c.start)+' – '+fd(c.end)+' · '+dls+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0">'+cBdg(c.status)+'<button onclick="S.editCamp=S.editCamp===\''+c.id+'\'?null:\''+c.id+'\';render()" style="font-size:11px;padding:2px 8px;color:var(--muted)">'+(isEditing?'Close':'Edit')+'</button>'+(showT?' <span style="font-size:12px;color:var(--muted)">&#9650;</span>':' <span style="font-size:12px;color:var(--muted)">&#9660;</span>')+'</div></div><div style="font-size:12px;color:#555;margin:6px 0 8px">'+esc(c.desc)+'</div>'+(campCats?'<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:2px">'+campCats+'</div>':'')+renderLinks(c)+'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Comments ('+(c.comments||[]).length+')</div>'+renderComments(c.comments||[],'campaign',c.id,null)+'</div>'+'<div class="prog"><div class="pf" style="width:'+pr+'%;background:'+c.color+'"></div></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.03em">'+done+'/'+activeTasks.length+' tasks · '+pr+'%'+(archivedCount?' · '+archivedCount+' archived':'')+'</span><div>'+team.map(a=>'<span class="chip">'+a+'</span>').join('')+'</div></div>'+(isEditing?campEditForm(c):'')+(showT?'<hr><div style="padding:0 0 4px">'+sortedTasks.map(t=>tRow(t,c.id,false)).join('')+addTForm(c.id,false)+'</div>':'')+'</div>';
 }
 
 function buildAllTabs(){
@@ -646,9 +650,18 @@ function rqCard(r){
 }
 
 function rRes(){
+  if(!S.resAnalysis)S.resAnalysis=null;
+  if(!S.resAnalysisLoad)S.resAnalysisLoad=false;
   const tc=S.campaigns.reduce((s,c)=>s+(parseInt(c.results&&c.results.covers)||0),0);
   const tp=S.campaigns.reduce((s,c)=>s+(parseInt(c.results&&c.results.promo)||0),0);
-  return '<div class="mets" style="margin-bottom:1.5rem"><div class="met"><div class="ml">Total covers</div><div class="mv">'+tc.toLocaleString()+'</div></div><div class="met"><div class="ml">Total promo uptake</div><div class="mv">'+tp.toLocaleString()+'</div></div></div>'+S.campaigns.map(c=>{if(!c.results)c.results={covers:'',promo:'',alac:'',notes:''};return '<div class="card cc" style="--col:'+c.color+';margin-bottom:12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-size:15px;font-weight:700;letter-spacing:-0.01em">'+esc(c.name)+'</div>'+cBdg(c.status)+'</div><div class="g3" style="margin-bottom:10px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Total covers</div><input class="ri" type="number" value="'+esc(c.results.covers)+'" placeholder="0" onchange="upR(\''+c.id+'\',\'covers\',this.value)"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Promo uptake</div><input class="ri" type="number" value="'+esc(c.results.promo)+'" placeholder="0" onchange="upR(\''+c.id+'\',\'promo\',this.value)"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">A la carte</div><input class="ri" type="number" value="'+esc(c.results.alac||'')+'" placeholder="0" onchange="upR(\''+c.id+'\',\'alac\',this.value)"></div></div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Notes</div><input class="ri" type="text" value="'+esc(c.results.notes||'')+'" placeholder="Performance notes…" onchange="upR(\''+c.id+'\',\'notes\',this.value)"></div>';}).join('');
+  const analysis=S.resAnalysis?'<div style="margin-top:1.5rem"><div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">AI Analysis</div><div style="background:var(--faint);border-radius:4px;padding:1rem;font-size:13px;line-height:1.7;white-space:pre-wrap;border:1px solid var(--border)">'+esc(S.resAnalysis)+'</div></div>':'';
+  return '<div class="mets" style="margin-bottom:1.5rem"><div class="met"><div class="ml">Total covers</div><div class="mv">'+tc.toLocaleString()+'</div></div><div class="met"><div class="ml">Total promo uptake</div><div class="mv">'+tp.toLocaleString()+'</div></div></div><div style="margin-bottom:1.5rem"><button class="primary" onclick="genResAnalysis()" '+(S.resAnalysisLoad?'disabled':'')+'>'+(S.resAnalysisLoad?'Generating&#8230;':'Generate AI analysis &#8599;')+'</button></div>'
+  +S.campaigns.map(c=>{
+    if(!c.results)c.results={covers:'',promo:'',alac:'',notes:'',past:[]};
+    if(!c.results.past)c.results.past=[];
+    const pastRows=c.results.past.map((p,i)=>'<tr><td style="padding:4px 8px;font-size:12px"><input class="ri" type="text" value="'+esc(p.label||'')+'" placeholder="e.g. 2025" onchange="updPast(\''+c.id+'\','+i+',\'label\',this.value)" style="padding:3px 6px;font-size:12px;width:70px"></td><td style="padding:4px 8px"><input class="ri" type="number" value="'+esc(p.covers||'')+'" placeholder="0" onchange="updPast(\''+c.id+'\','+i+',\'covers\',this.value)" style="padding:3px 6px;font-size:12px;width:70px"></td><td style="padding:4px 8px"><input class="ri" type="number" value="'+esc(p.promo||'')+'" placeholder="0" onchange="updPast(\''+c.id+'\','+i+',\'promo\',this.value)" style="padding:3px 6px;font-size:12px;width:70px"></td><td style="padding:4px 8px"><input class="ri" type="number" value="'+esc(p.rev||'')+'" placeholder="0" onchange="updPast(\''+c.id+'\','+i+',\'rev\',this.value)" style="padding:3px 6px;font-size:12px;width:70px"></td><td style="padding:4px 8px"><button onclick="removePast(\''+c.id+'\','+i+')" style="font-size:11px;padding:2px 7px;color:var(--red);border-color:rgba(200,19,26,0.2)">&#10005;</button></td></tr>').join('');
+    return '<div class="card cc" style="--col:'+c.color+';margin-bottom:12px"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px"><div style="font-size:15px;font-weight:700;letter-spacing:-0.01em">'+esc(c.name)+'</div>'+cBdg(c.status)+'</div><div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Current period</div><div class="g3" style="margin-bottom:10px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Total covers</div><input class="ri" type="number" value="'+esc(c.results.covers)+'" placeholder="0" onchange="upR(\''+c.id+'\',\'covers\',this.value)"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Promo uptake</div><input class="ri" type="number" value="'+esc(c.results.promo)+'" placeholder="0" onchange="upR(\''+c.id+'\',\'promo\',this.value)"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Revenue (SGD)</div><input class="ri" type="number" value="'+esc(c.results.rev||'')+'" placeholder="0" onchange="upR(\''+c.id+'\',\'rev\',this.value)"></div></div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Notes</div><input class="ri" type="text" value="'+esc(c.results.notes||'')+'" placeholder="Performance notes&#8230;" style="margin-bottom:12px" onchange="upR(\''+c.id+'\',\'notes\',this.value)"><hr style="margin:12px 0"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px"><div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted)">Past results</div><button onclick="addPast(\''+c.id+'\')" style="font-size:11px;padding:2px 9px">+ Add period</button></div>'+(c.results.past.length?'<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse"><thead><tr><th style="text-align:left;padding:4px 8px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Period</th><th style="text-align:left;padding:4px 8px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Covers</th><th style="text-align:left;padding:4px 8px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Promo</th><th style="text-align:left;padding:4px 8px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--muted);border-bottom:1px solid var(--border)">Revenue</th><th></th></tr></thead><tbody>'+pastRows+'</tbody></table></div>':'<div style="font-size:12px;color:rgba(0,0,0,0.3);padding:4px 0">No past results yet.</div>')+'</div>';
+  }).join('')+analysis;
 }
 
 function rBrief(){
@@ -709,7 +722,7 @@ window.addLink=(cid)=>{const label=document.getElementById('lnk-label-'+cid).val
 window.removeLink=(cid,i)=>{const c=S.campaigns.find(c=>c.id===cid);c.links.splice(i,1);saveToBin();render();};
 window.saveTsk=(cid)=>{if(!S.atName.trim())return;const c=S.campaigns.find(c=>c.id===cid);c.tasks.push({id:'t'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['campaigns'];saveToBin();render();};
 window.saveGen=()=>{if(!S.atName.trim())return;S.generalTasks.push({id:'gen'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['Other'],blk:'',notes:S.agNotes,links:[],archived:false});S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['Other'];S.agNotes='';saveToBin();render();};
-window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venue:nc.venue,status:nc.status,start:nc.start,end:nc.end,desc:nc.desc,links:[],comments:[],color:nc.color||'#C8131A',results:{covers:'',promo:'',alac:'',notes:''},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns']};saveToBin();render();};
+window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venues:nc.venues&&nc.venues.length?[...nc.venues]:['All Venues'],venue:(nc.venues&&nc.venues[0])||'All Venues',status:nc.status,start:nc.start,end:nc.end,desc:nc.desc,links:[],comments:[],color:nc.color||'#C8131A',results:{covers:'',promo:'',alac:'',notes:''},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venues:['All Venues'],venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns']};saveToBin();render();};
 window.upR=(cid,f,v)=>{const c=S.campaigns.find(c=>c.id===cid);if(!c.results)c.results={covers:'',promo:'',alac:'',notes:''};c.results[f]=v;saveToBin();};
 window.subReq=()=>{if(!S.rqF.name.trim())return;S.requests.push({id:'r'+uid(),name:S.rqF.name.trim(),details:S.rqF.details,cid:S.rqF.cid,who:[...(S.rqF.who||[])],due:S.rqF.due,by:S.rqF.by,status:'pending',rejComment:'',date:new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'})});S.rqF={name:'',details:'',cid:'',who:[],due:'',by:''};saveToBin();render();};
 window.accReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='accepted';const whoArr=Array.isArray(r.who)?r.who:(r.who?r.who.split(',').map(s=>s.trim()).filter(Boolean):[]);if(r.cid){const c=S.campaigns.find(c=>c.id===r.cid);if(c){c.tasks.push({id:'t'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);}}else{S.generalTasks.push({id:'gen'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['Other'],blk:'',notes:r.details||'',links:[],archived:false});}saveToBin();render();};
@@ -717,6 +730,119 @@ window.rejReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='rejected'
 window.readFile=async(inp)=>{const file=inp.files[0];if(!file)return;const ext=file.name.split('.').pop().toLowerCase();if(['txt','md','csv'].includes(ext)){const rd=new FileReader();rd.onload=e=>{S.addTxt+=(S.addTxt?'\n\n':'')+e.target.result;render();};rd.readAsText(file);}else if(ext==='docx'&&typeof mammoth!=='undefined'){const rd=new FileReader();rd.onload=async e=>{try{const res=await mammoth.extractRawText({arrayBuffer:e.target.result});S.addTxt+=(S.addTxt?'\n\n':'')+res.value;render();}catch(err){alert('Could not read .docx — paste the text instead.');}};rd.readAsArrayBuffer(file);}};
 window.addAI=async()=>{if(!S.addTxt.trim())return;S.addLoad=true;render();try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:'Campaign parser for 1-Arden Singapore. Venues: Arden Bar, Kaarla, Oumi, Sol and Luna. Team: '+S.team.join(', ')+'. Categories: '+S.categories.map(c=>c.id).join(', ')+'. Today: 2026-04-15.\n\nParse into JSON only:\n{"id":"kebab","name":"Name","cats":["campaigns"],"venue":"All Venues","status":"planned","start":"YYYY-MM-DD","end":"YYYY-MM-DD","desc":"summary","links":[],"color":"#C8131A","tasks":[{"id":"t-x","name":"Task","status":"not-started","who":["Daryl"],"due":"YYYY-MM-DD","comments":[],"cats":["campaigns"],"blk":"","archived":false}],"results":{"covers":"","promo":"","alac":"","notes":""}}\n\nBrief:\n'+S.addTxt}]})});const d=await r.json();const camp=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());if(!camp.links)camp.links=[];camp.tasks=sortByDue(camp.tasks);S.campaigns.push(camp);S.showAdd=false;S.addTxt='';S.tab='campaigns';saveToBin();}catch(e){alert('Could not parse brief.');}S.addLoad=false;render();};
 window.genBrief=async()=>{if(!S.briefTxt.trim())return;S.briefLoad=true;render();try{const cl=S.campaigns.map(c=>'- '+c.name+' ('+c.venue+', '+c.status+', '+pct(c)+'% complete)').join('\n');const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:'Assistant Marketing Manager, 1-Arden CapitaSpring Singapore. Venues: Arden Bar, Kaarla, Oumi, Sol and Luna. Today: 15 Apr 2026.\n\nCampaigns:\n'+cl+'\n\nFrom meeting notes, write a weekly brief: Campaign Status, Key Updates, Action Items, Upcoming Deadlines, Notes.\n\nNotes:\n'+S.briefTxt}]})});const d=await r.json();S.briefOut=d.content[0].text;}catch(e){S.briefOut='Error generating brief.';}S.briefLoad=false;render();};
+
+// ─── Venue helpers ───────────────────────────────────────
+function getCampVenueChips(cid,venues){
+  var html='',all=["All Venues","Arden Bar","Kaarla","Oumi","Sol and Luna"];
+  all.forEach(function(v){
+    var sel=venues.includes(v);
+    html+='<span style="display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;cursor:pointer;border:1px solid '+(sel?'var(--black)':'var(--bd2)')+';background:'+(sel?'var(--black)':'var(--faint)')+';color:'+(sel?'#fff':'var(--muted)')+';" onclick="toggleCampVenue(\''+cid+'\',\''+v+'\')">'+v+'</span> ';
+  });
+  return html;
+}
+function getNewCampVenueChips(){
+  var html='',all=["All Venues","Arden Bar","Kaarla","Oumi","Sol and Luna"];
+  var venues=S.newCamp.venues||[];
+  all.forEach(function(v){
+    var sel=venues.includes(v);
+    html+='<span style="display:inline-block;padding:3px 10px;border-radius:100px;font-size:11px;cursor:pointer;border:1px solid '+(sel?'var(--black)':'var(--bd2)')+';background:'+(sel?'var(--black)':'var(--faint)')+';color:'+(sel?'#fff':'var(--muted)')+';" onclick="toggleNewCampVenue(\''+v+'\')">'+v+'</span> ';
+  });
+  return html;
+}
+window.toggleCampVenue=function(cid,v){
+  var c=S.campaigns.find(function(x){return x.id===cid;});
+  if(!c.venues)c.venues=[c.venue||'All Venues'];
+  if(c.venues.includes(v)){c.venues=c.venues.filter(function(x){return x!==v;});if(!c.venues.length)c.venues=['All Venues'];}
+  else c.venues.push(v);
+  saveToBin();render();
+};
+window.toggleNewCampVenue=function(v){
+  if(!S.newCamp.venues)S.newCamp.venues=[];
+  if(S.newCamp.venues.includes(v))S.newCamp.venues=S.newCamp.venues.filter(function(x){return x!==v;});
+  else S.newCamp.venues.push(v);
+  render();
+};
+// ─── Campaign toggle open/close ───────────────────────────
+window.toggleCampOpen=function(cid){
+  if(S.openCamps.has(cid))S.openCamps.delete(cid);else S.openCamps.add(cid);render();
+};
+// ─── Campaign drag/drop ───────────────────────────────────
+window.dragCampStart=function(id){S.dragCampSrc=id;};
+window.dragCampOver=function(e,id){e.preventDefault();};
+window.dragCampDrop=function(targetId){
+  if(!S.dragCampSrc||S.dragCampSrc===targetId)return;
+  var arr=S.campaigns.slice();
+  var si=arr.findIndex(function(x){return x.id===S.dragCampSrc;});
+  var ti=arr.findIndex(function(x){return x.id===targetId;});
+  var moved=arr.splice(si,1)[0];arr.splice(ti,0,moved);
+  S.campaigns=arr;S.dragCampSrc=null;saveToBin();render();
+};
+window.dragCampEnd=function(){S.dragCampSrc=null;};
+// ─── Task links ───────────────────────────────────────────
+window.addTaskLink=function(cid,tid){
+  var lbl=document.getElementById('tlbl-'+tid);
+  var urlEl=document.getElementById('turl-'+tid);
+  if(!urlEl||!urlEl.value.trim())return;
+  function getT(){
+    if(cid==='gen')return S.generalTasks.find(function(t){return t.id===tid;});
+    return S.campaigns.find(function(x){return x.id===cid;}).tasks.find(function(t){return t.id===tid;});
+  }
+  var t=getT();if(!t.links)t.links=[];
+  t.links.push({label:lbl?lbl.value.trim()||urlEl.value.trim():urlEl.value.trim(),url:urlEl.value.trim()});
+  saveToBin();render();
+};
+window.removeTaskLink=function(cid,tid,i){
+  function getT(){
+    if(cid==='gen')return S.generalTasks.find(function(t){return t.id===tid;});
+    return S.campaigns.find(function(x){return x.id===cid;}).tasks.find(function(t){return t.id===tid;});
+  }
+  getT().links.splice(i,1);saveToBin();render();
+};
+// ─── Campaign image ───────────────────────────────────────
+window.uploadCampImage=function(cid,input){
+  var file=input.files[0];if(!file)return;
+  var rd=new FileReader();
+  rd.onload=function(e){
+    S.campaigns.find(function(x){return x.id===cid;}).image=e.target.result;
+    saveToBin();render();
+  };
+  rd.readAsDataURL(file);
+};
+window.removeCampImage=function(cid){
+  S.campaigns.find(function(x){return x.id===cid;}).image=null;
+  saveToBin();render();
+};
+// ─── Past results ─────────────────────────────────────────
+window.addPast=function(cid){
+  var c=S.campaigns.find(function(x){return x.id===cid;});
+  if(!c.results.past)c.results.past=[];
+  c.results.past.push({label:'',covers:'',promo:'',rev:''});
+  saveToBin();render();
+};
+window.removePast=function(cid,i){
+  S.campaigns.find(function(x){return x.id===cid;}).results.past.splice(i,1);
+  saveToBin();render();
+};
+window.updPast=function(cid,i,field,val){
+  S.campaigns.find(function(x){return x.id===cid;}).results.past[i][field]=val;
+  saveToBin();
+};
+// ─── Results AI analysis ─────────────────────────────────
+S.resAnalysis=null;S.resAnalysisLoad=false;
+window.genResAnalysis=async function(){
+  S.resAnalysisLoad=true;render();
+  try{
+    var summary=S.campaigns.map(function(camp){
+      var r=camp.results||{};
+      var past=(r.past||[]).map(function(p){return p.label+': covers='+p.covers+', promo='+p.promo+', revenue='+p.rev;}).join('; ');
+      return camp.name+' | Current: covers='+r.covers+', promo='+r.promo+', revenue='+(r.rev||'n/a')+' | Past: '+(past||'none')+' | Notes: '+(r.notes||'none');
+    }).join('\n');
+    var r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1500,messages:[{role:'user',content:'You are a restaurant marketing analyst for 1-Arden, CapitaSpring Singapore (venues: Arden Bar, Kaarla, Oumi, Sol and Luna). Analyse the following campaign results data and provide:\n\n1. COMPARISON — covers and revenue across campaigns and periods (2–3 observations)\n2. PRICE POINT ANALYSIS — average spend per cover, promo vs a la carte split (1–2 observations)\n3. ANALYTICAL OBSERVATIONS — 5–10 specific insights from the data\n4. ACTIONABLE SUGGESTIONS — 5–8 concrete, impactful recommendations for future campaigns\n\nData:\n'+summary}]})});
+    var d=await r.json();
+    S.resAnalysis=d.content[0].text;
+  }catch(e){S.resAnalysis='Error generating analysis. Please try again.';}
+  S.resAnalysisLoad=false;render();
+};
 
 async function init(){
   if(!BIN_KEY||!BIN_ID){
@@ -732,4 +858,4 @@ async function init(){
 init();
 </script>
 </body>
-</html>
+</html+'<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Campaign image</div>'+(c.image?'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><img src="'+c.image+'" style="width:60px;height:85px;object-fit:cover;border-radius:3px;border:1px solid var(--border)"><button onclick="removeCampImage(\''+c.id+'\')" style="font-size:11px;padding:3px 9px;color:var(--red);border-color:rgba(200,19,26,0.2)">Remove</button></div>':'<div style="font-size:12px;color:var(--muted);margin-bottom:6px">No image uploaded.</div>')+'<input type="file" accept="image/*" onchange="uploadCampImage(\''+c.id+'\',this)" style="font-size:12px"></div>'>
