@@ -218,12 +218,19 @@ function migrate(arr,isGen){
     if(item.launchDate===undefined)item.launchDate='';
     if(item.launchTBC===undefined)item.launchTBC=false;
     if(item.archived===undefined)item.archived=false;
+    if(!item.venues){item.venues=item.venue?[item.venue]:['All Venues'];}
+    if(item.image===undefined)item.image=null;
+    if(item.launchDate===undefined)item.launchDate='';
+    if(item.launchTBC===undefined)item.launchTBC=false;
+    if(item.archived===undefined)item.archived=false;
     item.comments=item.comments.map(c=>c.id?c:{id:uid(),name:c.a||c.name||'',text:c.t||c.text||'',date:c.d||c.date||'',editedDate:null});
     if(item.tasks)item.tasks=item.tasks.map(t=>{
       if(!t.cats)t.cats=t.cat?[t.cat]:['campaigns'];
       if(t.archived===undefined)t.archived=false;
       if(!t.comments)t.comments=[];
       if(!t.links)t.links=[];
+      if(t.desc===undefined)t.desc='';
+      if(t.taskStart===undefined)t.taskStart='';
       t.comments=t.comments.map(c=>c.id?c:{id:uid(),name:c.a||c.name||'',text:c.t||c.text||'',date:c.d||c.date||'',editedDate:null});
       return t;
     });
@@ -347,7 +354,7 @@ let S={
   briefTxt:'',briefOut:'',briefLoad:false,
   cDraft:{},aLE:null,
   addTF:null,atName:'',atWho:[],atDue:'',atCats:['campaigns'],agNotes:'',
-  editCamp:null,openCamps:new Set(),dragCampSrc:null,dragSbSrc:null,sbMenu:null,fSortByDate:false,cName:'',editCom:null,editComText:'',editComName:'',
+  editCamp:null,openCamps:new Set(),dragCampSrc:null,dragSbSrc:null,sbMenu:null,fSortByDate:false,cName:'',descExp:null,atDesc:'',editCom:null,editComText:'',editComName:'',
   newCamp:{name:'',venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns']},
   requests:[],rqF:{name:'',details:'',cid:'',who:[],due:'',by:''},rjC:{},
   team:['Daryl','Philicia','Zul','Keisha','Jit Seng'],
@@ -472,11 +479,16 @@ function tRow(t,cid,isGen){
   const exp=S.exp===t.id;
   const fn=isGen?'togG(\''+t.id+'\')':'togT(\''+cid+'\',\''+t.id+'\')';
   const catPills=(t.cats||[]).map(c=>'<span class="cat-pill">'+esc(c)+'</span>').join('');
-  return '<div><div class="tr" onclick="xT(\''+t.id+'\')"><div class="chk'+(t.status==='done'?' chkd':'')+'" onclick="event.stopPropagation();'+fn+'">'+(t.status==='done'?'<svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5l2.5 2.5 4.5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>':'')+'</div><div style="flex:1;min-width:0"><div class="tn'+(t.status==='done'?' tnd':'')+'">'+esc(t.name)+'</div><div style="margin-top:3px">'+t.who.map(a=>'<span class="chip">'+a+'</span>').join('')+' '+sBdg(t.status)+(t.blk?' <span style="font-size:10px;color:var(--red)"> — '+esc(t.blk)+'</span>':'')+catPills+(isGen&&t.notes?'<span class="chip" style="font-style:italic">'+esc(t.notes.slice(0,40))+'…</span>':'')+(t.comments.length?'<span class="chip">'+t.comments.length+' note'+(t.comments.length>1?'s':'')+'</span>':'')+'</div></div><div class="tdue'+(ov?' tov':'')+'">'+fd(t.due)+'</div></div>'+(exp?tExp(t,cid,isGen):'')+'</div>';
+  // Phase color dot
+  const phaseCol=(!isGen&&cid)?getPhaseColor(cid,t.due):null;
+  const phaseDot=phaseCol?'<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+phaseCol+';flex-shrink:0;margin-top:4px"></span> ':'';
+  // Desc preview
+  const descPreview=t.desc?('<div style="font-size:11px;color:var(--muted);margin-top:2px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;cursor:pointer" onclick="event.stopPropagation();S.descExp=S.descExp===\''+t.id+'\' ?null:\''+t.id+'\';render()">'+(S.descExp===t.id?esc(t.desc)+' <span style="color:var(--red);font-size:10px">▲</span>':esc(t.desc.slice(0,90))+(t.desc.length>90?'…':'')+ ' <span style="color:var(--muted);font-size:10px">▼</span>')+'</div>'):'  ';
+  return '<div><div class="tr" onclick="xT(\''+t.id+'\')"><div class="chk'+(t.status==='done'?' chkd':'')+'" onclick="event.stopPropagation();'+fn+'">'+(t.status==='done'?'<svg width="9" height="7" viewBox="0 0 9 7" fill="none"><path d="M1 3.5l2.5 2.5 4.5-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>':'')+'</div><div style="flex:1;min-width:0">'+phaseDot+'<div class="tn'+(t.status==='done'?' tnd':'')+'">'+esc(t.name)+'</div>'+descPreview+'<div style="margin-top:3px">'+t.who.map(a=>'<span class="chip">'+a+'</span>').join('')+' '+sBdg(t.status)+(t.blk?' <span style="font-size:10px;color:var(--red)"> — '+esc(t.blk)+'</span>':'')+catPills+(isGen&&t.notes?'<span class="chip" style="font-style:italic">'+esc(t.notes.slice(0,40))+'\u2026</span>':'')+(t.comments.length?'<span class="chip">'+t.comments.length+' note'+(t.comments.length>1?'s':'')+'</span>':'')+'</div></div><div class="tdue'+(ov?' tov':'')+'">'+fd(t.due)+'</div></div>'+(exp?tExp(t,cid,isGen):'')+'</div>';
 }
 
 function tExp(t,cid,isGen){
-  const dr=esc(S.cDraft[t.id]||'');
+  const dr=esc(S.cDraft[isGen?'gen-'+cid+'-'+t.id:cid+'-'+t.id]||'');
   const sts=['not-started','in-progress','blocked','done'];
   const stl={'not-started':'Not started','in-progress':'In progress','blocked':'Blocked','done':'Done'};
   const fn=isGen?'setSg(\''+t.id+'\',this.value)':'setSt(\''+cid+'\',\''+t.id+'\',this.value)';
@@ -484,13 +496,53 @@ function tExp(t,cid,isGen){
   const bFn=isGen?'setGBlk(\''+t.id+'\',this.value)':'setBlk(\''+cid+'\',\''+t.id+'\',this.value)';
   const allCats=isGen?['Print & production','Supplier & orders','Installations','Admin','Operations','Other']:S.categories.map(c=>c.id);
   const cats=t.cats||[];
-  const catPills=cats.map(c=>'<span class="cat-pill">'+esc(c)+'<button class="cat-pill-btn" onclick="'+(isGen?'removeGenTaskCat(\''+t.id+'\',\''+c+'\')':'removeTaskCat(\''+cid+'\',\''+t.id+'\',\''+c+'\')')+'">✕</button></span>').join('');
+  const catPills=cats.map(c=>'<span class="cat-pill">'+esc(c)+'<button class="cat-pill-btn" onclick="'+(isGen?'removeGenTaskCat(\''+t.id+'\',\''+c+'\')':'removeTaskCat(\''+cid+'\',\''+t.id+'\',\''+c+'\')') +'">✕</button></span>').join('');
   const remaining=allCats.filter(c=>!cats.includes(c));
-  const addDrop=remaining.length?'<select class="sml" onchange="if(this.value){'+(isGen?'addGenTaskCat(\''+t.id+'\',this.value)':'addTaskCat(\''+cid+'\',\''+t.id+'\',this.value)')+';this.value=\'\'}" style="font-size:11px;padding:2px 5px"><option value="">+ category</option>'+remaining.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('')+'</select>':'';
-  const whoRow=S.team.map(m=>'<span class="who-chip'+(t.who.includes(m)?' sel':'')+'" onclick="'+(isGen?'toggleGenWho(\''+t.id+'\',\''+m+'\')':'toggleTaskWho(\''+cid+'\',\''+t.id+'\',\''+m+'\')')+'">'+esc(m)+'</span>').join('');
-  const archBtn=t.archived?'<button onclick="'+(isGen?'unarchiveGenTask(\''+t.id+'\')':'unarchiveTask(\''+cid+'\',\''+t.id+'\')')+'\" style="font-size:11px;padding:3px 9px;color:#1A4FA0;border-color:rgba(26,79,160,0.25)">Unarchive</button>':'<button onclick="'+(isGen?'archiveGenTask(\''+t.id+'\')':'archiveTask(\''+cid+'\',\''+t.id+'\')')+'\" style="font-size:11px;padding:3px 9px;color:var(--muted)">Archive</button>';
-  const delBtn='<button onclick="'+(isGen?'deleteGenTask(\''+t.id+'\')':'deleteTask(\''+cid+'\',\''+t.id+'\')')+'\" style="font-size:11px;padding:3px 9px;color:var(--red);border-color:rgba(200,19,26,0.25)">Delete</button>';
-  return '<div class="tx"><div class="g2" style="margin-bottom:10px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Status</div><select class="sml" style="width:100%" onchange="'+fn+'">'+sts.map(s=>'<option value="'+s+'"'+(t.status===s?' selected':'')+'>'+stl[s]+'</option>').join('')+'</select>'+(t.status==='blocked'?'<input type="text" value="'+esc(t.blk||'')+'" placeholder="Reason…" style="width:100%;font-size:12px;padding:4px 7px;border:1px solid var(--bd2);border-radius:3px;margin-top:6px" oninput="'+bFn+'">':'')+'</div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Due date</div><input type="date" value="'+(t.due||'')+'" class="sml" style="width:100%" onchange="'+dFn+'"></div></div><div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Assigned to</div><div style="display:flex;flex-wrap:wrap">'+whoRow+'</div></div><div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+catPills+addDrop+'</div></div>'+(isGen?'<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Notes</div><input type="text" value="'+esc(t.notes||'')+'" placeholder="Supplier, specs, context…" style="width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px;margin-bottom:10px" oninput="setGNotes(\''+t.id+'\',this.value)">':'')+(isGen?renderComments(t.comments,'gen',null,t.id):renderComments(t.comments,'task',cid,t.id))+'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--faint)"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Links</div>'+(t.links&&t.links.length?t.links.map((l,i)=>'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="color:var(--muted)">&#8226;</span><a href="'+esc(l.url)+'" target="_blank" style="font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(l.label||l.url)+'</a><button onclick="removeTaskLink(\''+( isGen?'gen':cid)+'\',\''+t.id+'\',' +i+')" style="font-size:11px;padding:1px 7px;color:var(--red);border-color:rgba(200,19,26,0.2);letter-spacing:0">&#10005;</button></div>').join(''):+(c.image?'<img src="'+c.image+'" style="float:right;width:70px;height:99px;object-fit:cover;border-radius:3px;border:1px solid var(--border);margin:0 0 10px 14px">':'')+'<div style="font-size:12px;color:rgba(0,0,0,0.3)">No links yet.</div>')+'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input type="text" id="tlbl-'+t.id+'" placeholder="Display text&#8230;" style="flex:1;min-width:90px;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px"><input type="text" id="turl-'+t.id+'" placeholder="https://&#8230;" style="flex:2;min-width:130px;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px"><button onclick="addTaskLink(\''+( isGen?'gen':cid)+'\',\''+t.id+'\')" style="font-size:11px;padding:4px 10px">Add</button></div></div>'+'<div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)">'+archBtn+delBtn+'</div></div>';
+  const addDrop=remaining.length?'<select class="sml" onchange="if(this.value){'+(isGen?'addGenTaskCat(\''+t.id+'\',this.value)':'addTaskCat(\''+cid+'\',\''+t.id+'\',this.value)')+';this.value=\'\'" style="font-size:11px;padding:2px 5px"><option value="">+ category</option>'+remaining.map(c=>'<option value="'+esc(c)+'">'+esc(c)+'</option>').join('')+'</select>':'';
+  const whoRow=S.team.map(m=>'<span class="who-chip'+(t.who.includes(m)?' sel':'')+' " onclick="'+(isGen?'toggleGenWho(\''+t.id+'\',\''+m+'\')':'toggleTaskWho(\''+cid+'\',\''+t.id+'\',\''+m+'\')') +'">' +esc(m)+'</span>').join('');
+  const archBtn=t.archived?'<button onclick="'+(isGen?'unarchiveGenTask(\''+t.id+'\')':'unarchiveTask(\''+cid+'\',\''+t.id+'\')') +'" style="font-size:11px;padding:3px 9px;color:#1A4FA0;border-color:rgba(26,79,160,0.25)">Unarchive</button>':'<button onclick="'+(isGen?'archiveGenTask(\''+t.id+'\')':'archiveTask(\''+cid+'\',\''+t.id+'\')') +'" style="font-size:11px;padding:3px 9px;color:var(--muted)">Archive</button>';
+  const delBtn='<button onclick="'+(isGen?'deleteGenTask(\''+t.id+'\')':'deleteTask(\''+cid+'\',\''+t.id+'\')') +'" style="font-size:11px;padding:3px 9px;color:var(--red);border-color:rgba(200,19,26,0.25)">Delete</button>';
+  const comKey=(isGen?'gen':'task')+'-'+(cid||'')+(t.id?'-'+t.id:'');
+  return '<div class="tx">'
+    // Row 1: Status + End date
+    +'<div class="g2" style="margin-bottom:10px">'
+    +'<div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Status</div>'
+    +'<select class="sml" style="width:100%" onchange="'+fn+'">'+sts.map(s=>'<option value="'+s+'"'+(t.status===s?' selected':'')+'>'+stl[s]+'</option>').join('')+'</select>'
+    +(t.status==='blocked'?'<input type="text" value="'+esc(t.blk||'')+'" placeholder="Reason\u2026" style="width:100%;font-size:12px;padding:4px 7px;border:1px solid var(--bd2);border-radius:3px;margin-top:6px" oninput="'+bFn+'">':'')
+    +'</div>'
+    +'<div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">End date <span style="color:var(--red)">*</span></div>'
+    +'<input type="date" value="'+(t.due||'')+'" class="sml" style="width:100%" onchange="'+dFn+'">'
+    +'</div></div>'
+    // Row 2: Start date (optional) + Description
+    +'<div class="g2" style="margin-bottom:10px">'
+    +'<div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Start date (optional)</div>'
+    +'<input type="date" value="'+(t.taskStart||'')+'" class="sml" style="width:100%" onchange="setTaskStart(\''+cid+'\',\''+t.id+'\','+!!isGen+',this.value)">'
+    +'</div>'
+    +'<div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Description</div>'
+    +'<textarea style="width:100%;min-height:52px;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical" placeholder="Task description\u2026" oninput="setTaskDesc(\''+cid+'\',\''+t.id+'\','+!!isGen+',this.value)">'+esc(t.desc||'')+'</textarea>'
+    +'</div></div>'
+    // Assigned to
+    +'<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Assigned to</div>'
+    +'<div style="display:flex;flex-wrap:wrap">'+whoRow+'</div></div>'
+    // Categories
+    +'<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div>'
+    +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+catPills+addDrop+'</div></div>'
+    // Notes (gen only)
+    +(isGen?'<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Notes</div><input type="text" value="'+esc(t.notes||'')+'" placeholder="Supplier, specs, context\u2026" style="width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px;margin-bottom:10px" oninput="setGNotes(\''+t.id+'\',this.value)">':'')
+    // Comments
+    +(isGen?renderComments(t.comments,'gen',null,t.id):renderComments(t.comments,'task',cid,t.id))
+    // Links
+    +'<div style="margin-top:10px;padding-top:8px;border-top:1px solid var(--faint)">'
+    +'<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Links</div>'
+    +(t.links&&t.links.length?t.links.map((l,i)=>'<div style="display:flex;align-items:center;gap:6px;margin-bottom:4px"><span style="color:var(--muted)">&#8226;</span><a href="'+esc(l.url)+'" target="_blank" style="font-size:12px;font-weight:600;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">'+esc(l.label||l.url)+'</a><button onclick="removeTaskLink(\''+( isGen?'gen':cid)+'\',\''+t.id+'\',' +i+')" style="font-size:11px;padding:1px 7px;color:var(--red);border-color:rgba(200,19,26,0.2);letter-spacing:0">&#10005;</button></div>').join(''):'<div style="font-size:12px;color:rgba(0,0,0,0.3)">No links yet.</div>')
+    +'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px">'
+    +'<input type="text" id="tlbl-'+t.id+'" placeholder="Display text\u2026" style="flex:1;min-width:90px;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px">'
+    +'<input type="text" id="turl-'+t.id+'" placeholder="https://\u2026" style="flex:2;min-width:130px;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px">'
+    +'<button onclick="addTaskLink(\''+( isGen?'gen':cid)+'\',\''+t.id+'\')" style="font-size:11px;padding:4px 10px">Add</button>'
+    +'</div></div>'
+    // Archive / Delete
+    +'<div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)">'+archBtn+delBtn+'</div>'
+    +'</div>';
 }
 
 function addTForm(cid,isGen){
@@ -506,7 +558,49 @@ function campEditForm(c){
   const cats=(c.cats||[]).map(cat=>'<span class="cat-pill">'+esc(cat)+'<button class="cat-pill-btn" onclick="removeCampCat(\''+c.id+'\',\''+cat+'\')">✕</button></span>').join('');
   const remaining=S.categories.filter(cat=>!(c.cats||[]).includes(cat.id));
   const addDrop=remaining.length?'<select class="sml" onchange="if(this.value){addCampCat(\''+c.id+'\',this.value);this.value=\'\'}" style="font-size:11px;padding:2px 5px"><option value="">+ category</option>'+remaining.map(cat=>'<option value="'+esc(cat.id)+'">'+esc(cat.label)+'</option>').join('')+'</select>':'';
-  return '<div class="ap" style="margin-top:12px"><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Campaign name</div><input type="text" value="'+esc(c.name)+'" style="width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--bd2);border-radius:3px" oninput="setCampName(\''+c.id+'\',this.value)"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Status</div><select class="sml" style="width:100%" onchange="setCampField(\''+c.id+'\',\'status\',this.value)"><option value="active"'+(c.status==='active'?' selected':'')+'>Active</option><option value="planned"'+(c.status==='planned'?' selected':'')+'>Planned</option><option value="done"'+(c.status==='done'?' selected':'')+'>Done</option></select></div></div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Start date</div><input type="date" value="'+(c.start||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="setCampField(\''+c.id+'\',\'start\',this.value)"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">End date</div><input type="date" value="'+(c.end||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="setCampField(\''+c.id+'\',\'end\',this.value)"></div></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Venues</div><div style=\"display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px\">'+getCampVenueChips(c.id,c.venues||[])+'</div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Description</div><textarea style="width:100%;min-height:60px;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical" oninput="setCampField(\''+c.id+'\',\'desc\',this.value)">'+esc(c.desc)+'</textarea></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Accent colour</div><input type="color" value="'+(c.color||'#C8131A')+'" style="width:40px;height:28px;padding:0;border:1px solid var(--bd2);border-radius:3px;cursor:pointer" onchange="setCampField(\''+c.id+'\',\'color\',this.value)"></div><div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+cats+addDrop+'</div></div><button onclick="S.editCamp=null;render()" style="font-size:12px;padding:5px 12px">Done</button></div>';
+  return '<div class="ap" style="margin-top:12px">'
+    // Name + Status
+    +'<div class="g2" style="margin-bottom:8px">'
+    +'<div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Campaign name</div>'
+    +'<input type="text" value="'+esc(c.name)+'" style="width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--bd2);border-radius:3px" oninput="setCampName(\''+c.id+'\',this.value)"></div>'
+    +'<div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Status</div>'
+    +'<select class="sml" style="width:100%" onchange="setCampField(\''+c.id+'\',\'status\',this.value)"><option value="active"'+(c.status==='active'?' selected':'')+'>Active</option><option value="planned"'+(c.status==='planned'?' selected':'')+'>Planned</option><option value="done"'+(c.status==='done'?' selected':'')+'>Done</option></select>'
+    +'</div></div>'
+    // Start + End dates
+    +'<div class="g2" style="margin-bottom:8px">'
+    +'<div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Start date</div>'
+    +'<input type="date" value="'+(c.start||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="setCampField(\''+c.id+'\',\'start\',this.value)"></div>'
+    +'<div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">End date</div>'
+    +'<input type="date" value="'+(c.end||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="setCampField(\''+c.id+'\',\'end\',this.value)"></div></div>'
+    // Launch date + TBC
+    +'<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Launch date</div>'
+    +'<div style="display:flex;align-items:center;gap:12px">'
+    +'<input type="date" value="'+(c.launchDate||'')+'" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="setCampField(\''+c.id+'\',\'launchDate\',this.value)">'
+    +'<label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" '+(c.launchTBC?'checked ':'')+' onchange="setCampField(\''+c.id+'\',\'launchTBC\',this.checked)" style="accent-color:var(--red);cursor:pointer"> TBC</label>'
+    +'</div></div>'
+    // Description
+    +'<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Description</div>'
+    +'<textarea style="width:100%;min-height:60px;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical" oninput="setCampField(\''+c.id+'\',\'desc\',this.value)">'+esc(c.desc)+'</textarea></div>'
+    // Accent colour
+    +'<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Accent colour</div>'
+    +'<input type="color" value="'+(c.color||'#C8131A')+'" style="width:40px;height:28px;padding:0;border:1px solid var(--bd2);border-radius:3px;cursor:pointer" onchange="setCampField(\''+c.id+'\',\'color\',this.value)"></div>'
+    // Venues
+    +'<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Venues</div>'
+    +'<div style="display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px">'+getCampVenueChips(c.id,c.venues||[])+'</div></div>'
+    // Campaign image
+    +'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Campaign image</div>'
+    +(c.image?'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'
+      +'<img src="'+c.image+'" style="width:50px;height:70px;object-fit:cover;border-radius:3px;border:1px solid var(--border)">'
+      +'<button onclick="removeCampImage(\''+c.id+'\')" style="font-size:11px;padding:3px 9px;color:var(--red);border-color:rgba(200,19,26,0.2)">Remove image</button>'
+      +'</div>'
+    :'<div style="font-size:12px;color:var(--muted);margin-bottom:6px">No image uploaded.</div>')
+    +'<input type="file" accept="image/*" onchange="uploadCampImage(\''+c.id+'\',this)" style="font-size:12px">'
+    +'</div>'
+    // Categories
+    +'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div>'
+    +'<div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+cats+addDrop+'</div></div>'
+    +'<button onclick="S.editCamp=null;render()" style="font-size:12px;padding:5px 12px">Done</button>'
+    +'</div>';
 }
 
 function newCampForm(){
@@ -518,7 +612,8 @@ function newCampForm(){
 }
 
 function cCard(c,_st){
-  var showT=S.openCamps.has(c.id);
+  const isOpen=S.openCamps.has(c.id);
+  const showT=isOpen;
   const activeTasks=c.tasks.filter(t=>!t.archived);
   const pr=pct(c);
   const done=activeTasks.filter(t=>t.status==='done').length;
@@ -529,44 +624,52 @@ function cCard(c,_st){
   const campCats=(c.cats||[]).map(cat=>'<span class="cat-pill">'+esc(cat)+'</span>').join('');
   const isEditing=S.editCamp===c.id;
   const team=[...new Set(activeTasks.flatMap(t=>t.who))];
+  // Prep date = earliest task due
+  const taskDues=activeTasks.filter(t=>t.due).map(t=>t.due).sort();
+  const prepDate=taskDues.length?taskDues[0]:null;
+  // Subtitle
+  const venueLine=esc((c.venues||[c.venue||'']).join(', '));
+  const prepPart=prepDate?'Prep: '+fd(prepDate)+' · ':'';
+  const launchPart=c.launchTBC?'Launch: TBC · ':c.launchDate?'Launch: '+fd(c.launchDate)+' · ':'';
+  const durPart=fd(c.start)+' – '+fd(c.end)+' · '+dls;
+  const subtitle=venueLine+' · '+prepPart+launchPart+durPart;
 
-  return '<div class="card cc" style="--col:'+c.color+';transition:opacity 0.15s" draggable="true" ondragstart="dragCampStart(\''+c.id+'\')" ondragover="dragCampOver(event,\''+c.id+'\')" ondrop="dragCampDrop(\''+c.id+'\')" ondragend="dragCampEnd()"><div data-cid="'+c.id+'" onclick="window._hcc&&window._hcc(event,this.dataset.cid)" style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px;cursor:pointer"><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px">'+esc(c.name)+'</div><div style="font-size:11px;color:var(--muted)">'+esc((c.venues||[c.venue||'']).join(', '))+' · '+(c.launchTBC?'Launch TBC · ':c.launchDate?'Launch '+fd(c.launchDate)+' · ':'')+fd(c.start)+' – '+fd(c.end)+' · '+dls+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0">'+cBdg(c.status)+'<button onclick="S.editCamp=S.editCamp===\''+c.id+'\'?null:\''+c.id+'\';render()" style="font-size:11px;padding:2px 8px;color:var(--muted)">'+(isEditing?'Close':'Edit')+'</button>'+(showT?' <span style="font-size:12px;color:var(--muted)">&#9650;</span>':' <span style="font-size:12px;color:var(--muted)">&#9660;</span>')+'</div></div><div style="font-size:12px;color:#555;margin:6px 0 8px">'+esc(c.desc)+'</div>'+(campCats?'<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:2px">'+campCats+'</div>':'')+renderLinks(c)+'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Comments ('+(c.comments||[]).length+')</div>'+renderComments(c.comments||[],'campaign',c.id,null)+'</div>'+'<div class="prog"><div class="pf" style="width:'+pr+'%;background:'+c.color+'"></div></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.03em">'+done+'/'+activeTasks.length+' tasks · '+pr+'%'+(archivedCount?' · '+archivedCount+' archived':'')+'</span><div>'+team.map(a=>'<span class="chip">'+a+'</span>').join('')+'</div></div>'+(isEditing?campEditForm(c):'')+(showT?'<hr><div style="padding:0 0 4px">'+sortedTasks.map(t=>tRow(t,c.id,false)).join('')+addTForm(c.id,false)+'</div>':'')+'</div>';
-}
+  // Card inner content
+  const inner='<div data-cid="'+c.id+'" onclick="window._hcc&&window._hcc(event,\''+c.id+'\')" style="cursor:pointer">'
+    +'<div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px">'
+    +'<div style="flex:1;min-width:0">'
+    +'<div style="font-size:16px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px">'+esc(c.name)+'</div>'
+    +'<div style="font-size:11px;color:var(--muted)">'+subtitle+'</div>'
+    +'</div>'
+    +'<div style="display:flex;gap:6px;align-items:center;flex-shrink:0" onclick="event.stopPropagation()">'+cBdg(c.status)
+    +'<button onclick="S.editCamp=S.editCamp===\''+c.id+'\'?null:\''+c.id+'\';render()" style="font-size:11px;padding:2px 8px;color:var(--muted)">'+(isEditing?'Close':'Edit')+'</button>'
+    +'<span style="font-size:12px;color:var(--muted);user-select:none">'+(showT?'▲':'▼')+'</span>'
+    +'</div></div>'
+    +'<div style="font-size:12px;color:#555;margin:4px 0 8px">'+esc(c.desc)+'</div>'
+    +(campCats?'<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:2px">'+campCats+'</div>':'')
+    +renderLinks(c)
+    +'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)">'
+    +'<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Comments ('+(c.comments||[]).length+')</div>'
+    +renderComments(c.comments||[],'campaign',c.id,null)
+    +'</div>'
+    +'<div class="prog"><div class="pf" style="width:'+pr+'%;background:'+c.color+'"></div></div>'
+    +'<div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:6px">'
+    +'<span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.03em">'+done+'/'+activeTasks.length+' tasks · '+pr+'%'+(archivedCount?' · '+archivedCount+' archived':'')+'</span>'
+    +'<div>'+team.map(a=>'<span class="chip">'+a+'</span>').join('')+'</div>'
+    +'</div>'
+    +(isEditing?campEditForm(c):'')
+    +(showT?'<hr><div style="padding:0 0 4px">'+sortedTasks.map(t=>tRow(t,c.id,false)).join('')+addTForm(c.id,false)+'</div>':'')
+    +'</div>';
 
-function buildAllTabs(){
-  const archCount=S.campaigns.flatMap(c=>c.tasks).filter(t=>t.archived).length+S.generalTasks.filter(t=>t.archived).length;
-  const prq=S.requests.filter(r=>r.status==='pending').length;
-  return[
-    {id:'dashboard',l:'Dashboard'},
-    {id:'campaigns',l:'Campaigns'},
-    {id:'tasks',l:'All Tasks'},
-    {id:'general',l:'General Tasks'},
-    ...S.categories.map(c=>({id:catIdToTabId(c.id),l:c.label})),
-    {id:'requests',l:'Requests'+(prq?' ('+prq+')':'')},
-    {id:'results',l:'Results'},
-    {id:'archived',l:'Archived'+(archCount?' ('+archCount+')':'')},
-    {id:'brief',l:'Brief Generator'},
-  ];
-}
-
-function renderNav(){
-  const tabs=buildAllTabs();
-  const max=5;
-  const visible=tabs.slice(0,max);
-  const hidden=tabs.slice(max);
-  const navEl=document.getElementById('nav-bar');
-  let html=visible.map(t=>'<button class="tab'+(S.tab===t.id?' on':'')+'" onclick="setTab(\''+t.id+'\');S.menuOpen=false">'+t.l+'</button>').join('');
-  if(hidden.length){
-    html+='<div class="hb-wrap"><button class="hb-btn" onclick="S.menuOpen=!S.menuOpen;renderNav()"><div class="hb-icon"><span></span><span></span><span></span></div> More</button>';
-    if(S.menuOpen){
-      html+='<div class="hb-drop">'+hidden.map(t=>'<button class="'+(S.tab===t.id?'on':'')+'" onclick="setTab(\''+t.id+'\');S.menuOpen=false;renderNav()">'+t.l+'</button>').join('')+'</div>';
-    }
-    html+='</div>';
+  // Wrap with image if present — image is same height as card (align-self:stretch)
+  if(c.image){
+    return '<div draggable="true" ondragstart="dragCampStart(\''+c.id+'\')" ondragover="dragCampOver(event,\''+c.id+'\')" ondrop="dragCampDrop(\''+c.id+'\')" ondragend="dragCampEnd()" style="display:flex;align-items:stretch;margin-bottom:12px;border-radius:4px;overflow:hidden;border:1px solid var(--border);background:white;border-left:3px solid '+c.color+'">'
+      +'<img src="'+c.image+'" style="width:90px;flex-shrink:0;object-fit:cover;align-self:stretch;display:block">'
+      +'<div style="flex:1;min-width:0;padding:16px 18px">'+inner+'</div>'
+      +'</div>';
   }
-  navEl.innerHTML=html;
-  document.addEventListener('click',closeMenuOnOutside,{once:true});
+  return '<div class="card cc" draggable="true" ondragstart="dragCampStart(\''+c.id+'\')" ondragover="dragCampOver(event,\''+c.id+'\')" ondrop="dragCampDrop(\''+c.id+'\')" ondragend="dragCampEnd()" style="--col:'+c.color+'">'+inner+'</div>';
 }
-function closeMenuOnOutside(e){if(S.menuOpen&&!e.target.closest('.hb-wrap')){S.menuOpen=false;renderNav();}}
 
 function rDash(){
   const allCT=S.campaigns.flatMap(c=>c.tasks.filter(t=>!t.archived).map(t=>({...t,cid:c.id,cn:c.name})));
@@ -578,12 +681,46 @@ function rDash(){
   const planned=S.campaigns.filter(c=>c.status==='planned').length;
   const genOpen=S.generalTasks.filter(t=>t.status!=='done'&&!t.archived).length;
   const WS=new Date('2026-04-01'),WD=121;
+
+  // Gantt with phase color coding
+  const gantt=S.campaigns.map(c=>{
+    const s=Math.max(0,db(WS,c.start)/WD*100);
+    const e=Math.min(100,db(WS,c.end)/WD*100);
+    // Prep = start → launch (blue #185FA5)
+    const lp=c.launchDate?Math.min(100,Math.max(0,db(WS,c.launchDate)/WD*100)):null;
+    // prepDate = earliest task due
+    const tds=c.tasks.filter(t=>!t.archived&&t.due).map(t=>t.due).sort();
+    const pd=tds.length?tds[0]:null;
+    const pp=pd?Math.min(100,Math.max(0,db(WS,pd)/WD*100)):null;
+    // Segments
+    const prepStart=pp!==null?pp:s;
+    const prepWidth=lp!==null?Math.max(0,lp-prepStart):0;
+    const launchWidth=lp!==null?Math.max(0,e-lp):0;
+    const fullWidth=lp===null?Math.max(2,e-s):0;
+    return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
+      +'<div style="width:140px;font-size:11px;font-weight:600;color:#444;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">'+esc(c.name)+'</div>'
+      +'<div style="flex:1;position:relative;height:10px;background:rgba(0,0,0,0.08);border-radius:2px;overflow:hidden">'
+      +(fullWidth>0?'<div style="position:absolute;left:'+s+'%;width:'+fullWidth+'%;height:100%;background:'+c.color+';border-radius:2px" title="Campaign duration"></div>':'')
+      +(prepWidth>0?'<div style="position:absolute;left:'+prepStart+'%;width:'+prepWidth+'%;height:100%;background:#185FA5;border-radius:2px" title="Prep phase"></div>':'')
+      +(launchWidth>0?'<div style="position:absolute;left:'+lp+'%;width:'+launchWidth+'%;height:100%;background:#BA7517;border-radius:2px" title="Launch phase"></div>':'')
+      +'</div>'
+      +'</div>';
+  }).join('');
+
+  // Phase legend
+  const legend='<div style="display:flex;gap:14px;margin-bottom:12px;flex-wrap:wrap">'
+    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:12px;height:8px;background:#185FA5;border-radius:2px"></span>Prep (pre-launch)</div>'
+    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:12px;height:8px;background:#BA7517;border-radius:2px"></span>Launch (live period)</div>'
+    +'<div style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--muted)"><span style="display:inline-block;width:12px;height:8px;background:#888;border-radius:2px"></span>Campaign (no launch date)</div>'
+    +'</div>';
+
   return '<div class="mets"><div class="met"><div class="ml">Active</div><div class="mv">'+active+'</div></div><div class="met"><div class="ml">Planned</div><div class="mv">'+planned+'</div></div><div class="met"><div class="ml" style="'+(soon.length?'color:var(--red)':'')+'">Due this week</div><div class="mv" style="'+(soon.length?'color:var(--red)':'')+'">'+soon.length+'</div></div><div class="met"><div class="ml" style="'+(ov.length?'color:var(--red)':'')+'">Overdue</div><div class="mv" style="'+(ov.length?'color:var(--red)':'')+'">'+ov.length+'</div></div><div class="met"><div class="ml">General open</div><div class="mv">'+genOpen+'</div></div></div>'
-  +'<div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">Campaign roadmap — Apr to Jul 2026</div>'
+  +'<div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Campaign roadmap — Apr to Jul 2026</div>'
+  +legend
   +'<div style="background:#E8E5DF;border-radius:4px;padding:14px 16px;margin-bottom:1.5rem"><div style="display:flex;margin-bottom:8px"><div style="width:140px;flex-shrink:0"></div><div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr 1fr"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Apr</span><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">May</span><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Jun</span><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Jul</span></div></div>'
-  +S.campaigns.map(c=>{const s=Math.max(0,db(WS,c.start)/WD*100);const e=Math.min(100,db(WS,c.end)/WD*100);const w=Math.max(2,e-s);return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px"><div style="width:140px;font-size:11px;font-weight:600;color:#444;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">'+esc(c.name)+'</div><div style="flex:1;position:relative;height:8px;background:rgba(0,0,0,0.1);border-radius:2px;overflow:hidden"><div style="position:absolute;left:'+s+'%;width:'+w+'%;height:100%;background:'+c.color+';border-radius:2px"></div></div></div>';}).join('')+'</div>'
-  +(attn.length?'<div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Needs attention</div><div class="card" style="padding:0;overflow:hidden;margin-bottom:1.5rem">'+attn.slice(0,8).map((t,i)=>{const d=du(t.due);return '<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;'+(i<Math.min(8,attn.length)-1?'border-bottom:1px solid var(--faint)':'')+'">'+(d<0?'<span style="display:inline-block;padding:2px 9px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:#FDEAEA;color:var(--red)">Overdue</span>':'<span style="display:inline-block;padding:2px 9px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:#FFF0CC;color:#8A5B00">Due soon</span>')+'<span style="font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">'+esc(t.name)+'</span><span style="font-size:11px;color:var(--muted)">'+esc(t.cn)+'</span><span style="font-size:11px;color:'+(d<0?'var(--red)':'var(--muted)')+'">'+fd(t.due)+'</span></div>';}).join('')+'</div>':'')
-  +'<div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">All campaigns</div>'+S.campaigns.map(c=>cCard(c,false)).join('');
+  +gantt+'</div>'
+  +(attn.length?'<div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Needs attention</div><div class="card" style="padding:0;overflow:hidden;margin-bottom:1.5rem">'+attn.slice(0,8).map((t,i)=>{const d=du(t.due);return '<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;'+(i<Math.min(8,attn.length)-1?'border-bottom:1px solid var(--faint)':'')+'">'+( d<0?'<span style="display:inline-block;padding:2px 9px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:#FDEAEA;color:var(--red)">Overdue</span>':'<span style="display:inline-block;padding:2px 9px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:#FFF0CC;color:#8A5B00">Due soon</span>')+'<span style="font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">'+esc(t.name)+'</span><span style="font-size:11px;color:var(--muted)">'+esc(t.cn)+'</span><span style="font-size:11px;color:'+(d<0?'var(--red)':'var(--muted)')+'">'+fd(t.due)+'</span></div>';}).join('')+'</div>':'')
+  +'<div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">All campaigns</div>'+S.campaigns.filter(c=>!c.archived).map(c=>cCard(c,false)).join('');
 }
 
 function rCamps(){
@@ -611,7 +748,7 @@ function rCamps(){
       +(ld?'<div style="font-size:10px;color:var(--muted)">Launch: '+esc(ld)+'</div>':'')
       +'</div>'
       +'<div style="display:flex;gap:2px;flex-shrink:0;position:relative">'
-      +'<button onclick="toggleCampOpen(\''+c.id+'\')" style="font-size:10px;padding:2px 5px;color:var(--muted)" title="'+(isOpen?'Collapse':'Expand')+'">'+(isOpen?'&#9650;':'&#9660;')+'</button>'
+      
       +'<button onclick="event.stopPropagation();S.sbMenu=S.sbMenu===\''+c.id+'\'?null:\''+c.id+'\';render()" style="font-size:13px;padding:1px 5px;color:var(--muted)" title="More">&#8943;</button>'
       +(menuOpen
         ?'<div style="position:absolute;top:100%;right:0;background:white;border:1px solid var(--border);border-radius:3px;z-index:200;min-width:130px;box-shadow:0 4px 14px rgba(0,0,0,0.12)">'
@@ -758,6 +895,16 @@ window.setSt=(cid,tid,v)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===
 window.setSg=(tid,v)=>{S.generalTasks.find(t=>t.id===tid).status=v;saveToBin();render();};
 window.setBlk=(cid,tid,v)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).blk=v;saveToBin();};
 window.setGBlk=(tid,v)=>{S.generalTasks.find(t=>t.id===tid).blk=v;saveToBin();};
+window.setTaskStart=(cid,tid,isGen,v)=>{
+  if(isGen===true||isGen==='true'){var t=S.generalTasks.find(t=>t.id===tid);if(t)t.taskStart=v;}
+  else{var c=S.campaigns.find(c=>c.id===cid);if(c){var t=c.tasks.find(t=>t.id===tid);if(t)t.taskStart=v;}}
+  saveToBin();
+};
+window.setTaskDesc=(cid,tid,isGen,v)=>{
+  if(isGen===true||isGen==='true'){var t=S.generalTasks.find(t=>t.id===tid);if(t)t.desc=v;}
+  else{var c=S.campaigns.find(c=>c.id===cid);if(c){var t=c.tasks.find(t=>t.id===tid);if(t)t.desc=v;}}
+  saveToBin();
+};
 window.setDue=(cid,tid,v)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).due=v;saveToBin();render();};
 window.setGDue=(tid,v)=>{S.generalTasks.find(t=>t.id===tid).due=v;saveToBin();render();};
 window.setGNotes=(tid,v)=>{S.generalTasks.find(t=>t.id===tid).notes=v;saveToBin();};
@@ -782,9 +929,9 @@ window.unarchiveGenTask=tid=>{S.generalTasks.find(t=>t.id===tid).archived=false;
 window.deleteGenTask=tid=>{if(!confirm('Permanently delete this task?'))return;S.generalTasks=S.generalTasks.filter(t=>t.id!==tid);S.exp=null;saveToBin();render();};
 window.addLink=(cid)=>{const label=document.getElementById('lnk-label-'+cid).value.trim();const url=document.getElementById('lnk-url-'+cid).value.trim();if(!url)return;const c=S.campaigns.find(c=>c.id===cid);if(!c.links)c.links=[];c.links.push({label:label||url,url});saveToBin();render();};
 window.removeLink=(cid,i)=>{const c=S.campaigns.find(c=>c.id===cid);c.links.splice(i,1);saveToBin();render();};
-window.saveTsk=(cid)=>{if(!S.atName.trim())return;const c=S.campaigns.find(c=>c.id===cid);c.tasks.push({id:'t'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['campaigns'];saveToBin();render();};
-window.saveGen=()=>{if(!S.atName.trim())return;S.generalTasks.push({id:'gen'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['Other'],blk:'',notes:S.agNotes,links:[],archived:false});S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['Other'];S.agNotes='';saveToBin();render();};
-window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venues:nc.venues&&nc.venues.length?[...nc.venues]:['All Venues'],venue:(nc.venues&&nc.venues[0])||'All Venues',launchDate:nc.launchDate||'',launchTBC:nc.launchTBC||false,archived:false,status:nc.status,start:nc.start,end:nc.end,desc:nc.desc,links:[],comments:[],color:nc.color||'#C8131A',results:{covers:'',promo:'',alac:'',notes:''},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venues:['All Venues'],venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns'],launchDate:'',launchTBC:false};saveToBin();render();};
+window.saveTsk=(cid)=>{if(!S.atName.trim())return;const c=S.campaigns.find(c=>c.id===cid);c.tasks.push({id:'t'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['campaigns'],blk:'',archived:false,desc:S.atDesc||'',taskStart:''});S.atDesc='';c.tasks=sortByDue(c.tasks);S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['campaigns'];saveToBin();render();};
+window.saveGen=()=>{if(!S.atName.trim())return;S.generalTasks.push({id:'gen'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['Other'],blk:'',notes:S.agNotes,links:[],archived:false,desc:S.atDesc||'',taskStart:''});S.atDesc='';S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['Other'];S.agNotes='';saveToBin();render();};
+window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venues:nc.venues&&nc.venues.length?[...nc.venues]:['All Venues'],venue:(nc.venues&&nc.venues[0])||'All Venues',launchDate:nc.launchDate||'',launchTBC:nc.launchTBC||false,archived:false,image:null,launchDate:nc.launchDate||'',launchTBC:nc.launchTBC||false,archived:false,status:nc.status,start:nc.start,end:nc.end,desc:nc.desc,links:[],comments:[],color:nc.color||'#C8131A',results:{covers:'',promo:'',alac:'',notes:''},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venues:['All Venues'],venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns'],launchDate:'',launchTBC:false};saveToBin();render();};
 window.upR=(cid,f,v)=>{const c=S.campaigns.find(c=>c.id===cid);if(!c.results)c.results={covers:'',promo:'',alac:'',notes:''};c.results[f]=v;saveToBin();};
 window.subReq=()=>{if(!S.rqF.name.trim())return;S.requests.push({id:'r'+uid(),name:S.rqF.name.trim(),details:S.rqF.details,cid:S.rqF.cid,who:[...(S.rqF.who||[])],due:S.rqF.due,by:S.rqF.by,status:'pending',rejComment:'',date:new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'})});S.rqF={name:'',details:'',cid:'',who:[],due:'',by:''};saveToBin();render();};
 window.accReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='accepted';const whoArr=Array.isArray(r.who)?r.who:(r.who?r.who.split(',').map(s=>s.trim()).filter(Boolean):[]);if(r.cid){const c=S.campaigns.find(c=>c.id===r.cid);if(c){c.tasks.push({id:'t'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);}}else{S.generalTasks.push({id:'gen'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['Other'],blk:'',notes:r.details||'',links:[],archived:false});}saveToBin();render();};
@@ -825,6 +972,7 @@ window.toggleNewCampVenue=function(v){
   render();
 };
 // ─── Campaign toggle open/close ───────────────────────────
+window._hcc=function(e,cid){if(!e.target.closest('button'))toggleCampOpen(cid);};
 window.toggleCampOpen=function(cid){
   if(S.openCamps.has(cid))S.openCamps.delete(cid);else S.openCamps.add(cid);render();
 };
@@ -943,6 +1091,17 @@ document.addEventListener('click',function(e){
 });
 
 window._hcc=function(e,cid){if(!e.target.closest('button'))toggleCampOpen(cid);};
+
+function getPhaseColor(cid,due){
+  if(!due||!cid||cid==='gen')return null;
+  var camp=S.campaigns.find(function(c){return c.id===cid;});
+  if(!camp)return null;
+  if(!camp.launchDate&&!camp.launchTBC)return '#3B6D11';
+  var d=new Date(due);
+  if(camp.launchTBC)return '#185FA5';
+  var ld=new Date(camp.launchDate);
+  return d<ld?'#185FA5':'#BA7517';
+}
 
 async function init(){
   if(!BIN_KEY||!BIN_ID){
