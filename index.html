@@ -671,6 +671,41 @@ function cCard(c,_st){
   return '<div class="card cc" draggable="true" ondragstart="dragCampStart(\''+c.id+'\')" ondragover="dragCampOver(event,\''+c.id+'\')" ondrop="dragCampDrop(\''+c.id+'\')" ondragend="dragCampEnd()" style="--col:'+c.color+'">'+inner+'</div>';
 }
 
+function buildAllTabs(){
+  const archCount=S.campaigns.flatMap(c=>c.tasks).filter(t=>t.archived).length+S.generalTasks.filter(t=>t.archived).length;
+  const prq=S.requests.filter(r=>r.status==='pending').length;
+  return[
+    {id:'dashboard',l:'Dashboard'},
+    {id:'campaigns',l:'Campaigns'},
+    {id:'tasks',l:'All Tasks'},
+    {id:'general',l:'General Tasks'},
+    ...S.categories.map(c=>({id:catIdToTabId(c.id),l:c.label})),
+    {id:'requests',l:'Requests'+(prq?' ('+prq+')':'')},
+    {id:'results',l:'Results'},
+    {id:'archived',l:'Archived'+(archCount?' ('+archCount+')':'')},
+    {id:'brief',l:'Brief Generator'},
+  ];
+}
+
+function renderNav(){
+  const tabs=buildAllTabs();
+  const max=5;
+  const visible=tabs.slice(0,max);
+  const hidden=tabs.slice(max);
+  const navEl=document.getElementById('nav-bar');
+  let html=visible.map(t=>'<button class="tab'+(S.tab===t.id?' on':'')+'" onclick="setTab(\''+t.id+'\');S.menuOpen=false">'+t.l+'</button>').join('');
+  if(hidden.length){
+    html+='<div class="hb-wrap"><button class="hb-btn" onclick="S.menuOpen=!S.menuOpen;renderNav()"><div class="hb-icon"><span></span><span></span><span></span></div> More</button>';
+    if(S.menuOpen){
+      html+='<div class="hb-drop">'+hidden.map(t=>'<button class="'+(S.tab===t.id?'on':'')+'" onclick="setTab(\''+t.id+'\');S.menuOpen=false;renderNav()">'+t.l+'</button>').join('')+'</div>';
+    }
+    html+='</div>';
+  }
+  navEl.innerHTML=html;
+  document.addEventListener('click',closeMenuOnOutside,{once:true});
+}
+function closeMenuOnOutside(e){if(S.menuOpen&&!e.target.closest('.hb-wrap')){S.menuOpen=false;renderNav();}}
+
 function rDash(){
   const allCT=S.campaigns.flatMap(c=>c.tasks.filter(t=>!t.archived).map(t=>({...t,cid:c.id,cn:c.name})));
   const allT=[...allCT,...S.generalTasks.filter(t=>!t.archived).map(t=>({...t,cid:'gen',cn:'General tasks'}))];
