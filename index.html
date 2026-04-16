@@ -212,9 +212,13 @@ function migrate(arr,isGen){
     if(item.archived===undefined)item.archived=false;
     if(!item.links&&item.link!==undefined){item.links=item.link?[{label:'Asset folder',url:item.link}]:[];delete item.link;}
     if(!item.links)item.links=[];
+    if(!item.comments)item.comments=[];
+    item.comments=item.comments.map(c=>c.id?c:{id:uid(),name:c.a||c.name||'',text:c.t||c.text||'',date:c.d||c.date||'',editedDate:null});
     if(item.tasks)item.tasks=item.tasks.map(t=>{
       if(!t.cats)t.cats=t.cat?[t.cat]:['campaigns'];
       if(t.archived===undefined)t.archived=false;
+      if(!t.comments)t.comments=[];
+      t.comments=t.comments.map(c=>c.id?c:{id:uid(),name:c.a||c.name||'',text:c.t||c.text||'',date:c.d||c.date||'',editedDate:null});
       return t;
     });
     return item;
@@ -336,7 +340,7 @@ let S={
   briefTxt:'',briefOut:'',briefLoad:false,
   cDraft:{},aLE:null,
   addTF:null,atName:'',atWho:[],atDue:'',atCats:['campaigns'],agNotes:'',
-  editCamp:null,
+  editCamp:null,cName:'',editCom:null,editComText:'',editComName:'',
   newCamp:{name:'',venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns']},
   requests:[],rqF:{name:'',details:'',cid:'',who:[],due:'',by:''},rjC:{},
   team:['Daryl','Philicia','Zul','Keisha','Jit Seng'],
@@ -352,7 +356,7 @@ let S={
     {id:'gen3',name:'GPSS hoarding sticker installation — CapitaSpring lobby',status:'not-started',who:['Daryl'],due:'2026-04-30',comments:[],cats:['Installations'],blk:'',notes:'',links:[],archived:false},
   ],
   campaigns:[
-    {id:'gpss',name:'GPSS: Pole Position',cats:['campaigns','pr-kol'],venue:'All Venues',status:'active',start:'2026-05-01',end:'2026-06-15',desc:"F1 circuit-to-venue umbrella campaign across all 14 1-Group restaurants.",links:[],color:'#185FA5',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+    {id:'gpss',name:'GPSS: Pole Position',cats:['campaigns','pr-kol'],venue:'All Venues',status:'active',start:'2026-05-01',end:'2026-06-15',desc:"F1 circuit-to-venue umbrella campaign across all 14 1-Group restaurants.",links:[],comments:[],color:'#185FA5',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
       {id:'g1',name:'Finalise circuit-venue pairings',status:'done',who:['Daryl'],due:'2026-04-10',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'g2',name:'GPSS PPTX deck',status:'in-progress',who:['Daryl','Zul'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'g3',name:'Starting Grid visual',status:'in-progress',who:['Zul'],due:'2026-04-25',comments:[],cats:['pr-kol'],blk:'',archived:false},
@@ -360,33 +364,33 @@ let S={
       {id:'g5',name:'KOL briefing and outreach',status:'not-started',who:['Daryl'],due:'2026-05-01',comments:[],cats:['pr-kol'],blk:'',archived:false},
       {id:'g6',name:'GEO FAQ content build',status:'not-started',who:['Philicia'],due:'2026-05-03',comments:[],cats:['campaigns'],blk:'',archived:false},
     ]},
-    {id:'val',name:'The Valencia Set',cats:['campaigns'],venue:'Sol and Luna',status:'active',start:'2026-04-15',end:'2026-06-01',desc:"Sol and Luna soft launch built around the ORA Valencia concept.",links:[],color:'#C8131A',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+    {id:'val',name:'The Valencia Set',cats:['campaigns'],venue:'Sol and Luna',status:'active',start:'2026-04-15',end:'2026-06-01',desc:"Sol and Luna soft launch built around the ORA Valencia concept.",links:[],comments:[],color:'#C8131A',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
       {id:'v1',name:'Mechanics and positioning',status:'in-progress',who:['Daryl'],due:'2026-04-18',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'v2',name:'Menu and drinks content',status:'in-progress',who:['Philicia'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'v3',name:'Website landing page',status:'not-started',who:['Philicia'],due:'2026-04-25',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'v4',name:'Hero photo shoot',status:'not-started',who:['Daryl','Zul'],due:'2026-04-28',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'v5',name:'KOL invites',status:'not-started',who:['Daryl'],due:'2026-05-01',comments:[],cats:['pr-kol'],blk:'',archived:false},
     ]},
-    {id:'mday',name:"Mother's Day: Steeped in Love",cats:['campaigns','group-dining'],venue:'All Venues',status:'active',start:'2026-04-01',end:'2026-05-11',desc:"Multi-venue Mother's Day activation. GEO FAQ, social copy, and group dining reservation push.",links:[],color:'#993556',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+    {id:'mday',name:"Mother's Day: Steeped in Love",cats:['campaigns','group-dining'],venue:'All Venues',status:'active',start:'2026-04-01',end:'2026-05-11',desc:"Multi-venue Mother's Day activation. GEO FAQ, social copy, and group dining reservation push.",links:[],comments:[],color:'#993556',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
       {id:'m1',name:'Finalise mechanics',status:'done',who:['Daryl'],due:'2026-04-01',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'m2',name:'GEO FAQ HTML — all venues',status:'in-progress',who:['Daryl'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'m3',name:'Social copy suite',status:'done',who:['Daryl'],due:'2026-04-18',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'m4',name:'Email campaign copy',status:'in-progress',who:['Philicia'],due:'2026-04-22',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'m5',name:'Group dining reservation push',status:'not-started',who:['Daryl','Keisha'],due:'2026-04-25',comments:[],cats:['group-dining'],blk:'',archived:false},
     ]},
-    {id:'tai',name:'Oumi: Nose-to-Tail',cats:['campaigns'],venue:'Oumi',status:'active',start:'2026-04-01',end:'2026-05-15',desc:"Content and campaign for Oumi's Nose-to-Tail pre-order menu with Chef Lamley.",links:[],color:'#0F6E56',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+    {id:'tai',name:'Oumi: Nose-to-Tail',cats:['campaigns'],venue:'Oumi',status:'active',start:'2026-04-01',end:'2026-05-15',desc:"Content and campaign for Oumi's Nose-to-Tail pre-order menu with Chef Lamley.",links:[],comments:[],color:'#0F6E56',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
       {id:'o1',name:'Mechanics confirmed',status:'done',who:['Daryl'],due:'2026-03-18',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'o2',name:'Shoot',status:'in-progress',who:['Philicia'],due:'2026-04-20',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'o3',name:'Artwork and KVs',status:'not-started',who:['Philicia'],due:'2026-04-25',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'o4',name:'Website landing page',status:'not-started',who:['Daryl'],due:'2026-04-28',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'o5',name:'Social posts scheduled',status:'not-started',who:['Philicia'],due:'2026-04-30',comments:[],cats:['campaigns'],blk:'',archived:false},
     ]},
-    {id:'tat',name:'Tatler Best Singapore 2026',cats:['pr-kol'],venue:'Oumi',status:'active',start:'2026-03-01',end:'2026-09-30',desc:'Strategy to secure Oumi a Top 20 position in the Tatler Best Singapore 2026 editorial cycle.',links:[],color:'#534AB7',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+    {id:'tat',name:'Tatler Best Singapore 2026',cats:['pr-kol'],venue:'Oumi',status:'active',start:'2026-03-01',end:'2026-09-30',desc:'Strategy to secure Oumi a Top 20 position in the Tatler Best Singapore 2026 editorial cycle.',links:[],comments:[],color:'#534AB7',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
       {id:'ta1',name:'Editorial strategy document',status:'done',who:['Daryl'],due:'2026-03-30',comments:[],cats:['pr-kol'],blk:'',archived:false},
       {id:'ta2',name:'Tatler editor outreach',status:'in-progress',who:['Daryl'],due:'2026-05-01',comments:[],cats:['pr-kol'],blk:'',archived:false},
       {id:'ta3',name:'Journalist invite programme',status:'not-started',who:['Daryl'],due:'2026-05-15',comments:[],cats:['pr-kol'],blk:'',archived:false},
     ]},
-    {id:'fday',name:"Father's Day Campaign",cats:['campaigns'],venue:'All Venues',status:'planned',start:'2026-05-15',end:'2026-06-22',desc:"Philicia's capstone campaign covering Father's Day, GPSS wrap-up, and Let's Go Local.",links:[],color:'#3B6D11',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
+    {id:'fday',name:"Father's Day Campaign",cats:['campaigns'],venue:'All Venues',status:'planned',start:'2026-05-15',end:'2026-06-22',desc:"Philicia's capstone campaign covering Father's Day, GPSS wrap-up, and Let's Go Local.",links:[],comments:[],color:'#3B6D11',results:{covers:'',promo:'',alac:'',notes:''},tasks:[
       {id:'f1',name:'Campaign brief',status:'not-started',who:['Philicia','Daryl'],due:'2026-05-10',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'f2',name:'Set menu concept and copy',status:'not-started',who:['Philicia'],due:'2026-05-20',comments:[],cats:['campaigns'],blk:'',archived:false},
       {id:'f3',name:'Group dining packages',status:'not-started',who:['Philicia','Keisha'],due:'2026-05-30',comments:[],cats:['group-dining'],blk:'',archived:false},
@@ -405,6 +409,56 @@ function renderLinks(c){
   const isEditing=S.editCamp===c.id;
   const addForm=isEditing?'<div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:6px"><input type="text" id="lnk-label-'+c.id+'" placeholder="Display text…" style="flex:1;min-width:120px;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px"><input type="text" id="lnk-url-'+c.id+'" placeholder="https://…" style="flex:2;min-width:160px;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px"><button onclick="addLink(\''+c.id+'\')" style="font-size:11px;padding:4px 10px">Add link</button></div>':'';
   return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)">'+rows+addForm+(links.length===0&&!isEditing?'<div style="font-size:12px;color:var(--muted)">No links yet.</div>':'')+'</div>';
+}
+
+
+function findCommentById(id){
+  for(const camp of S.campaigns){
+    const c=(camp.comments||[]).find(c=>c.id===id);
+    if(c)return{comment:c,type:'campaign',cid:camp.id,tid:null};
+    for(const t of camp.tasks){
+      const c2=(t.comments||[]).find(c=>c.id===id);
+      if(c2)return{comment:c2,type:'task',cid:camp.id,tid:t.id};
+    }
+  }
+  for(const t of S.generalTasks){
+    const c=(t.comments||[]).find(c=>c.id===id);
+    if(c)return{comment:c,type:'gen',cid:null,tid:t.id};
+  }
+  return null;
+}
+
+function renderComments(comments,type,cid,tid){
+  const key=type+'-'+(cid||'')+(tid?'-'+tid:'');
+  const draft=esc(S.cDraft[key]||'');
+  let out='';
+  if(comments&&comments.length){
+    comments.forEach(c=>{
+      const isEd=S.editCom&&S.editCom.id===c.id;
+      if(isEd){
+        out+='<div class="cm" style="background:var(--faint);padding:8px;border-radius:3px;margin-bottom:4px">';
+        out+='<div style="margin-bottom:5px"><input type="text" value="'+esc(S.editComName)+'" placeholder="Name *" oninput="S.editComName=this.value" style="font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px;width:140px;font-family:inherit"></div>';
+        out+='<textarea style="width:100%;min-height:52px;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical;margin-bottom:6px" oninput="S.editComText=this.value">'+esc(S.editComText)+'</textarea>';
+        out+='<div style="display:flex;gap:6px"><button onclick="saveEditCom()" style="font-size:11px;padding:4px 12px">Save</button><button onclick="S.editCom=null;render()" style="font-size:11px;padding:4px 12px">Cancel</button></div>';
+        out+='</div>';
+      }else{
+        out+='<div class="cm"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:6px;margin-bottom:2px">';
+        out+='<div><span style="font-size:11px;font-weight:700">'+esc(c.name)+'</span>';
+        out+='<span style="font-size:10px;color:var(--muted)"> &middot; '+esc(c.date)+(c.editedDate?' &middot; edited':'')+'</span></div>';
+        out+='<button onclick="startEditCom(\''+c.id+'\')" style="font-size:11px;padding:1px 8px;color:var(--muted);flex-shrink:0;letter-spacing:0">Edit</button>';
+        out+='</div><div style="font-size:12px;color:#333;line-height:1.5">'+esc(c.text)+'</div></div>';
+      }
+    });
+  }else{
+    out+='<div style="font-size:12px;color:rgba(0,0,0,0.3);padding:4px 0 6px">No comments yet.</div>';
+  }
+  const pa="'"+type+"','"+(cid||'')+"','"+(tid||'')+"'";
+  out+='<div style="display:flex;gap:6px;margin-top:8px;flex-wrap:wrap">';
+  out+='<input type="text" value="'+esc(S.cName)+'" placeholder="Name (required)" oninput="S.cName=this.value" style="width:130px;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit">';
+  out+='<input type="text" value="'+draft+'" placeholder="Write a comment…" oninput="S.cDraft[\''+key+'\']=this.value" onkeydown="if(event.key===\'Enter\')postCom('+pa+')" style="flex:1;min-width:150px;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit">';
+  out+='<button onclick="postCom('+pa+')" style="font-size:12px;padding:5px 12px">Post</button>';
+  out+='</div>';
+  return out;
 }
 
 function tRow(t,cid,isGen){
@@ -430,7 +484,7 @@ function tExp(t,cid,isGen){
   const whoRow=S.team.map(m=>'<span class="who-chip'+(t.who.includes(m)?' sel':'')+'" onclick="'+(isGen?'toggleGenWho(\''+t.id+'\',\''+m+'\')':'toggleTaskWho(\''+cid+'\',\''+t.id+'\',\''+m+'\')')+'">'+esc(m)+'</span>').join('');
   const archBtn=t.archived?'<button onclick="'+(isGen?'unarchiveGenTask(\''+t.id+'\')':'unarchiveTask(\''+cid+'\',\''+t.id+'\')')+'\" style="font-size:11px;padding:3px 9px;color:#1A4FA0;border-color:rgba(26,79,160,0.25)">Unarchive</button>':'<button onclick="'+(isGen?'archiveGenTask(\''+t.id+'\')':'archiveTask(\''+cid+'\',\''+t.id+'\')')+'\" style="font-size:11px;padding:3px 9px;color:var(--muted)">Archive</button>';
   const delBtn='<button onclick="'+(isGen?'deleteGenTask(\''+t.id+'\')':'deleteTask(\''+cid+'\',\''+t.id+'\')')+'\" style="font-size:11px;padding:3px 9px;color:var(--red);border-color:rgba(200,19,26,0.25)">Delete</button>';
-  return '<div class="tx"><div class="g2" style="margin-bottom:10px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Status</div><select class="sml" style="width:100%" onchange="'+fn+'">'+sts.map(s=>'<option value="'+s+'"'+(t.status===s?' selected':'')+'>'+stl[s]+'</option>').join('')+'</select>'+(t.status==='blocked'?'<input type="text" value="'+esc(t.blk||'')+'" placeholder="Reason…" style="width:100%;font-size:12px;padding:4px 7px;border:1px solid var(--bd2);border-radius:3px;margin-top:6px" oninput="'+bFn+'">':'')+'</div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Due date</div><input type="date" value="'+(t.due||'')+'" class="sml" style="width:100%" onchange="'+dFn+'"></div></div><div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Assigned to</div><div style="display:flex;flex-wrap:wrap">'+whoRow+'</div></div><div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+catPills+addDrop+'</div></div>'+(isGen?'<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Notes</div><input type="text" value="'+esc(t.notes||'')+'" placeholder="Supplier, specs, context…" style="width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px;margin-bottom:10px" oninput="setGNotes(\''+t.id+'\',this.value)">':'')+(t.comments.length?t.comments.map(c=>'<div class="cm"><span style="font-size:11px;font-weight:600">'+esc(c.a)+'</span> <span style="font-size:10px;color:var(--muted)">'+esc(c.d)+'</span><div style="font-size:12px;color:#444;margin-top:1px">'+esc(c.t)+'</div></div>').join(''):'<div style="font-size:12px;color:rgba(0,0,0,0.35);margin-bottom:6px">No comments yet</div>')+'<div style="display:flex;gap:6px;margin-top:8px"><input type="text" value="'+dr+'" placeholder="Add a comment…" style="flex:1;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" oninput="S.cDraft[\''+t.id+'\']=this.value" onkeydown="if(event.key===\'Enter\')addCom(\''+(cid||'gen')+'\',\''+t.id+'\','+!!isGen+')"><button onclick="addCom(\''+(cid||'gen')+'\',\''+t.id+'\','+!!isGen+')" style="font-size:12px;padding:5px 10px">Post</button></div><div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)">'+archBtn+delBtn+'</div></div>';
+  return '<div class="tx"><div class="g2" style="margin-bottom:10px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Status</div><select class="sml" style="width:100%" onchange="'+fn+'">'+sts.map(s=>'<option value="'+s+'"'+(t.status===s?' selected':'')+'>'+stl[s]+'</option>').join('')+'</select>'+(t.status==='blocked'?'<input type="text" value="'+esc(t.blk||'')+'" placeholder="Reason…" style="width:100%;font-size:12px;padding:4px 7px;border:1px solid var(--bd2);border-radius:3px;margin-top:6px" oninput="'+bFn+'">':'')+'</div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Due date</div><input type="date" value="'+(t.due||'')+'" class="sml" style="width:100%" onchange="'+dFn+'"></div></div><div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Assigned to</div><div style="display:flex;flex-wrap:wrap">'+whoRow+'</div></div><div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+catPills+addDrop+'</div></div>'+(isGen?'<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:4px">Notes</div><input type="text" value="'+esc(t.notes||'')+'" placeholder="Supplier, specs, context…" style="width:100%;font-size:12px;padding:4px 8px;border:1px solid var(--bd2);border-radius:3px;margin-bottom:10px" oninput="setGNotes(\''+t.id+'\',this.value)">':'')+(isGen?renderComments(t.comments,'gen',null,t.id):renderComments(t.comments,'task',cid,t.id))+'<div style="display:flex;gap:6px;margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)">'+archBtn+delBtn+'</div></div>';
 }
 
 function addTForm(cid,isGen){
@@ -469,7 +523,7 @@ function cCard(c,showT){
   const isEditing=S.editCamp===c.id;
   const team=[...new Set(activeTasks.flatMap(t=>t.who))];
 
-  return '<div class="card cc" style="--col:'+c.color+'"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px"><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px">'+esc(c.name)+'</div><div style="font-size:11px;color:var(--muted)">'+esc(c.venue)+' · '+fd(c.start)+' – '+fd(c.end)+' · '+dls+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0">'+cBdg(c.status)+'<button onclick="S.editCamp=S.editCamp===\''+c.id+'\'?null:\''+c.id+'\';render()" style="font-size:11px;padding:2px 8px;color:var(--muted)">'+(isEditing?'Close':'Edit')+'</button></div></div><div style="font-size:12px;color:#555;margin:6px 0 8px">'+esc(c.desc)+'</div>'+(campCats?'<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:2px">'+campCats+'</div>':'')+renderLinks(c)+'<div class="prog"><div class="pf" style="width:'+pr+'%;background:'+c.color+'"></div></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.03em">'+done+'/'+activeTasks.length+' tasks · '+pr+'%'+(archivedCount?' · '+archivedCount+' archived':'')+'</span><div>'+team.map(a=>'<span class="chip">'+a+'</span>').join('')+'</div></div>'+(isEditing?campEditForm(c):'')+(showT?'<hr><div style="padding:0 0 4px">'+sortedTasks.map(t=>tRow(t,c.id,false)).join('')+addTForm(c.id,false)+'</div>':'')+'</div>';
+  return '<div class="card cc" style="--col:'+c.color+'"><div style="display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px"><div style="flex:1;min-width:0"><div style="font-size:16px;font-weight:700;letter-spacing:-0.02em;margin-bottom:2px">'+esc(c.name)+'</div><div style="font-size:11px;color:var(--muted)">'+esc(c.venue)+' · '+fd(c.start)+' – '+fd(c.end)+' · '+dls+'</div></div><div style="display:flex;gap:6px;align-items:center;flex-shrink:0">'+cBdg(c.status)+'<button onclick="S.editCamp=S.editCamp===\''+c.id+'\'?null:\''+c.id+'\';render()" style="font-size:11px;padding:2px 8px;color:var(--muted)">'+(isEditing?'Close':'Edit')+'</button></div></div><div style="font-size:12px;color:#555;margin:6px 0 8px">'+esc(c.desc)+'</div>'+(campCats?'<div style="margin-bottom:8px;display:flex;flex-wrap:wrap;gap:2px">'+campCats+'</div>':'')+renderLinks(c)+'<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--faint)"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Comments ('+(c.comments||[]).length+')</div>'+renderComments(c.comments||[],'campaign',c.id,null)+'</div>'+'<div class="prog"><div class="pf" style="width:'+pr+'%;background:'+c.color+'"></div></div><div style="display:flex;align-items:center;justify-content:space-between;margin-top:8px;flex-wrap:wrap;gap:6px"><span style="font-size:11px;color:var(--muted);font-weight:600;letter-spacing:0.03em">'+done+'/'+activeTasks.length+' tasks · '+pr+'%'+(archivedCount?' · '+archivedCount+' archived':'')+'</span><div>'+team.map(a=>'<span class="chip">'+a+'</span>').join('')+'</div></div>'+(isEditing?campEditForm(c):'')+(showT?'<hr><div style="padding:0 0 4px">'+sortedTasks.map(t=>tRow(t,c.id,false)).join('')+addTForm(c.id,false)+'</div>':'')+'</div>';
 }
 
 function buildAllTabs(){
@@ -622,7 +676,9 @@ window.setTab=t=>{S.tab=t;S.menuOpen=false;render();};
 window.togT=(cid,tid)=>{const c=S.campaigns.find(c=>c.id===cid);const t=c.tasks.find(t=>t.id===tid);t.status=t.status==='done'?'not-started':'done';saveToBin();render();};
 window.togG=tid=>{const t=S.generalTasks.find(t=>t.id===tid);t.status=t.status==='done'?'not-started':'done';saveToBin();render();};
 window.xT=tid=>{S.exp=S.exp===tid?null:tid;render();};
-window.addCom=(cid,tid,isGen)=>{const text=S.cDraft[tid];if(!text||!text.trim())return;const now=new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'});if(isGen){S.generalTasks.find(t=>t.id===tid).comments.push({a:'Daryl',t:text.trim(),d:now});}else{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).comments.push({a:'Daryl',t:text.trim(),d:now});}S.cDraft[tid]='';saveToBin();render();};
+window.startEditCom=id=>{const found=findCommentById(id);if(!found)return;S.editCom={id,type:found.type,cid:found.cid,tid:found.tid};S.editComName=found.comment.name;S.editComText=found.comment.text;render();};
+window.saveEditCom=()=>{if(!S.editCom)return;if(!S.editComName.trim()){alert('Name is required.');return;}if(!S.editComText.trim()){alert('Comment cannot be empty.');return;}const found=findCommentById(S.editCom.id);if(found){found.comment.name=S.editComName.trim();found.comment.text=S.editComText.trim();found.comment.editedDate=new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'});}S.editCom=null;saveToBin();render();};
+window.postCom=(type,cid,tid)=>{const name=S.cName.trim();const key=type+'-'+(cid||'')+(tid?'-'+tid:'');const text=(S.cDraft[key]||'').trim();if(!name){alert('Please enter your name before posting.');return;}if(!text)return;const comment={id:uid(),name,text,date:new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'}),editedDate:null};if(type==='campaign'){S.campaigns.find(c=>c.id===cid).comments.push(comment);}else if(type==='gen'){S.generalTasks.find(t=>t.id===tid).comments.push(comment);}else{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).comments.push(comment);}S.cDraft[key]='';saveToBin();render();};
 window.setSt=(cid,tid,v)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).status=v;saveToBin();render();};
 window.setSg=(tid,v)=>{S.generalTasks.find(t=>t.id===tid).status=v;saveToBin();render();};
 window.setBlk=(cid,tid,v)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).blk=v;saveToBin();};
@@ -653,7 +709,7 @@ window.addLink=(cid)=>{const label=document.getElementById('lnk-label-'+cid).val
 window.removeLink=(cid,i)=>{const c=S.campaigns.find(c=>c.id===cid);c.links.splice(i,1);saveToBin();render();};
 window.saveTsk=(cid)=>{if(!S.atName.trim())return;const c=S.campaigns.find(c=>c.id===cid);c.tasks.push({id:'t'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['campaigns'];saveToBin();render();};
 window.saveGen=()=>{if(!S.atName.trim())return;S.generalTasks.push({id:'gen'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['Other'],blk:'',notes:S.agNotes,links:[],archived:false});S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['Other'];S.agNotes='';saveToBin();render();};
-window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venue:nc.venue,status:nc.status,start:nc.start,end:nc.end,desc:nc.desc,links:[],color:nc.color||'#C8131A',results:{covers:'',promo:'',alac:'',notes:''},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns']};saveToBin();render();};
+window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venue:nc.venue,status:nc.status,start:nc.start,end:nc.end,desc:nc.desc,links:[],comments:[],color:nc.color||'#C8131A',results:{covers:'',promo:'',alac:'',notes:''},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns']};saveToBin();render();};
 window.upR=(cid,f,v)=>{const c=S.campaigns.find(c=>c.id===cid);if(!c.results)c.results={covers:'',promo:'',alac:'',notes:''};c.results[f]=v;saveToBin();};
 window.subReq=()=>{if(!S.rqF.name.trim())return;S.requests.push({id:'r'+uid(),name:S.rqF.name.trim(),details:S.rqF.details,cid:S.rqF.cid,who:[...(S.rqF.who||[])],due:S.rqF.due,by:S.rqF.by,status:'pending',rejComment:'',date:new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'})});S.rqF={name:'',details:'',cid:'',who:[],due:'',by:''};saveToBin();render();};
 window.accReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='accepted';const whoArr=Array.isArray(r.who)?r.who:(r.who?r.who.split(',').map(s=>s.trim()).filter(Boolean):[]);if(r.cid){const c=S.campaigns.find(c=>c.id===r.cid);if(c){c.tasks.push({id:'t'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);}}else{S.generalTasks.push({id:'gen'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['Other'],blk:'',notes:r.details||'',links:[],archived:false});}saveToBin();render();};
