@@ -29,6 +29,7 @@ a{color:var(--red)}
 .ph-right{display:flex;align-items:center;gap:6px}
 /* Nav */
 .nav-wrap{background:var(--black);border-bottom:1px solid rgba(255,255,255,0.07);padding:0 1.5rem;display:flex;align-items:center;position:sticky;top:52px;z-index:49;gap:0}
+.nav-scroll{display:flex;align-items:center;flex:1;min-width:0}
 .tab{border:none;background:transparent;font-family:inherit;font-size:11px;font-weight:600;color:rgba(255,255,255,0.45);cursor:pointer;padding:14px 14px;border-bottom:2px solid transparent;white-space:nowrap;letter-spacing:0.06em;text-transform:uppercase;transition:color 0.15s}
 .tab:hover{color:rgba(255,255,255,0.8)}
 .tab.on{color:#fff;border-bottom-color:var(--red)}
@@ -120,10 +121,13 @@ input[type=text],input[type=date],input[type=number],textarea,select{font-family
   .rc-wrap{flex-direction:column;margin:-1rem !important}
   .rc-sb{width:100% !important;position:static !important;max-height:none !important;border-right:none !important;border-bottom:1px solid var(--border)}
   .rc-main{padding:1rem !important;width:100%}
-  /* Allow nav tabs to scroll horizontally */
-  .nav-wrap{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
-  .nav-wrap::-webkit-scrollbar{display:none}
-  .hb-wrap{position:sticky;right:0;background:var(--black);margin-left:auto;box-shadow:-8px 0 8px -4px rgba(0,0,0,0.4)}
+  /* Horizontal scroll lives on the inner .nav-scroll container (not .nav-wrap),
+     so the More dropdown below .hb-wrap isn't clipped by overflow-y:hidden. */
+  .nav-wrap{overflow:visible}
+  .nav-scroll{overflow-x:auto;overflow-y:hidden;flex:1;min-width:0;-webkit-overflow-scrolling:touch;scrollbar-width:none;display:flex}
+  .nav-scroll::-webkit-scrollbar{display:none}
+  /* hb-wrap is outside the scrolling container — always visible, dropdown not clipped */
+  .hb-wrap{flex-shrink:0;background:var(--black);box-shadow:-8px 0 8px -4px rgba(0,0,0,0.4)}
 }
 @media(max-width:600px){
   .g2,.g3{grid-template-columns:1fr}
@@ -759,9 +763,12 @@ function renderNav(){
   const visible=tabs.slice(0,max);
   const hidden=tabs.slice(max);
   const navEl=document.getElementById('nav-bar');
-  let html=visible.map(t=>'<button class="tab'+(S.tab===t.id?' on':'')+'" onclick="setTab(\''+t.id+'\');S.menuOpen=false">'+t.l+'</button>').join('');
+  // Visible tabs go inside .nav-scroll (horizontal scroll container on mobile).
+  // .hb-wrap is a SIBLING of .nav-scroll so its dropdown isn't clipped by overflow.
+  let tabsHtml=visible.map(t=>'<button class="tab'+(S.tab===t.id?' on':'')+'" onclick="setTab(\''+t.id+'\');S.menuOpen=false">'+t.l+'</button>').join('');
+  let html='<div class="nav-scroll">'+tabsHtml+'</div>';
   if(hidden.length){
-    html+='<div class="hb-wrap"><button class="hb-btn" onclick="S.menuOpen=!S.menuOpen;renderNav()"><div class="hb-icon"><span></span><span></span><span></span></div> More</button>';
+    html+='<div class="hb-wrap"><button class="hb-btn" onclick="event.stopPropagation();S.menuOpen=!S.menuOpen;renderNav()"><div class="hb-icon"><span></span><span></span><span></span></div> More</button>';
     if(S.menuOpen){
       html+='<div class="hb-drop">'+hidden.map(t=>'<button class="'+(S.tab===t.id?'on':'')+'" onclick="setTab(\''+t.id+'\');S.menuOpen=false;renderNav()">'+t.l+'</button>').join('')+'</div>';
     }
