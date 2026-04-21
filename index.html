@@ -248,7 +248,7 @@ const urlBinId=urlParams.get('bin');
 let BIN_KEY=localStorage.getItem('jb_key')||'';
 let BIN_ID=urlBinId||localStorage.getItem('jb_id')||'';
 if(urlBinId)localStorage.setItem('jb_id',urlBinId);
-let saveTimer=null,saving=false,pollTimer=null;
+let saveTimer=null,saving=false,pollTimer=null,lastLoadTime=0;
 
 function db(a,b){return Math.floor((new Date(b)-new Date(a))/86400000);}
 function fd(d){if(!d)return'';return new Date(d).toLocaleDateString('en-SG',{day:'numeric',month:'short'});}
@@ -321,23 +321,32 @@ async function loadFromBin(silent){
       if(rec.team&&rec.team.length)S.team=rec.team;
       if(rec.categories&&rec.categories.length)S.categories=rec.categories.filter(c=>c.id!=='campaigns');
       if(!(S.openCamps instanceof Set))S.openCamps=new Set();
+      lastLoadTime=Date.now();
       return true;
     }
   }catch(e){console.error(e);}
   return false;
 }
 
-function saveToBin(){
+async function performSave(){
+  saveTimer=null;saving=true;
+  try{
+    const r=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':BIN_KEY},body:JSON.stringify({campaigns:S.campaigns,generalTasks:S.generalTasks,requests:S.requests,team:S.team,categories:S.categories})});
+    if(r.ok)showSync('Saved',2000);else showSync('Save failed',3000);
+  }catch(e){showSync('Save failed',3000);}
+  finally{saving=false;}
+}
+function saveToBin(immediate){
   if(!BIN_KEY||!BIN_ID)return;
   clearTimeout(saveTimer);showSync('Saving...');
-  saveTimer=setTimeout(async()=>{
-    saving=true;
-    try{
-      const r=await fetch('https://api.jsonbin.io/v3/b/'+BIN_ID,{method:'PUT',headers:{'Content-Type':'application/json','X-Master-Key':BIN_KEY},body:JSON.stringify({campaigns:S.campaigns,generalTasks:S.generalTasks,requests:S.requests,team:S.team,categories:S.categories})});
-      if(r.ok)showSync('Saved',2000);else showSync('Save failed',3000);
-    }catch(e){showSync('Save failed',3000);}
-    finally{saving=false;}
-  },1500);
+  if(immediate){performSave();return;}
+  saveTimer=setTimeout(performSave,1500);
+}
+async function flushPendingSave(){
+  if(saveTimer){clearTimeout(saveTimer);await performSave();return;}
+  // Also wait out any in-flight save so a reload doesn't race it.
+  let waited=0;
+  while(saving&&waited<5000){await new Promise(r=>setTimeout(r,50));waited+=50;}
 }
 
 async function createBin(key){
@@ -349,7 +358,8 @@ async function createBin(key){
 function startPolling(){
   if(pollTimer)clearInterval(pollTimer);
   pollTimer=setInterval(async()=>{
-    if(saving)return;
+    if(saving||saveTimer)return;
+    await flushPendingSave();
     const prev=JSON.stringify({c:S.campaigns,g:S.generalTasks,r:S.requests,t:S.team,cats:S.categories});
     const ok=await loadFromBin(true);
     if(ok){const next=JSON.stringify({c:S.campaigns,g:S.generalTasks,r:S.requests,t:S.team,cats:S.categories});if(prev!==next){showSync('Updated',1500);render();renderSettings();}}
@@ -357,9 +367,20 @@ function startPolling(){
 }
 
 document.addEventListener('visibilitychange',async()=>{
-  if(!document.hidden&&BIN_KEY&&BIN_ID){const ok=await loadFromBin(true);if(ok){showSync('Refreshed',1500);render();}}
+  if(document.hidden||!BIN_KEY||!BIN_ID)return;
+  await flushPendingSave();
+  // Lenient mode: skip the reload if we loaded recently. Prevents every
+  // tab-switch from triggering a full re-render.
+  if(Date.now()-lastLoadTime<30000)return;
+  const ok=await loadFromBin(true);
+  if(ok){showSync('Refreshed',1500);render();}
 });
-window.manualRefresh=async()=>{showSync('Refreshing...');const ok=await loadFromBin(false);if(ok){showSync('Updated',1500);render();}else showSync('Failed',2000);};
+// Warn user if they try to close the tab while a save is pending.
+// Modern browsers show their own generic "Changes may not be saved" dialog.
+window.addEventListener('beforeunload',function(e){
+  if(saveTimer){e.preventDefault();e.returnValue='';return '';}
+});
+window.manualRefresh=async()=>{await flushPendingSave();showSync('Refreshing...');const ok=await loadFromBin(false);if(ok){showSync('Updated',1500);render();}else showSync('Failed',2000);};
 
 async function doSetup(){
   const key=document.getElementById('sc-key').value.trim();
@@ -411,10 +432,10 @@ window.dragDrop=idx=>{
 };
 window.dragEnd=()=>{dragSrcIdx=null;};
 
-window.addMember=()=>{const inp=document.getElementById('new-member-input');const name=inp.value.trim();if(!name||S.team.includes(name))return;S.team.push(name);inp.value='';renderSettings();saveToBin();};
-window.removeMember=m=>{if(!confirm('Remove '+m+'? They will be unassigned from all tasks.'))return;S.team=S.team.filter(t=>t!==m);S.campaigns.forEach(c=>c.tasks.forEach(t=>{t.who=t.who.filter(w=>w!==m);}));S.generalTasks.forEach(t=>{t.who=t.who.filter(w=>w!==m);});renderSettings();saveToBin();render();};
-window.addCategory=()=>{const inp=document.getElementById('new-cat-input');const label=inp.value.trim();if(!label)return;const id=label.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');if(S.categories.find(c=>c.id===id))return;S.categories.push({id,label});inp.value='';renderCatList();saveToBin();render();};
-window.removeCategory=id=>{if(!confirm('Remove this category? Tasks will keep their category tags.'))return;S.categories=S.categories.filter(c=>c.id!==id);renderCatList();saveToBin();render();};
+window.addMember=()=>{const inp=document.getElementById('new-member-input');const name=inp.value.trim();if(!name||S.team.includes(name))return;S.team.push(name);inp.value='';renderSettings();saveToBin(true);};
+window.removeMember=m=>{if(!confirm('Remove '+m+'? They will be unassigned from all tasks.'))return;S.team=S.team.filter(t=>t!==m);S.campaigns.forEach(c=>c.tasks.forEach(t=>{t.who=t.who.filter(w=>w!==m);}));S.generalTasks.forEach(t=>{t.who=t.who.filter(w=>w!==m);});renderSettings();saveToBin(true);render();};
+window.addCategory=()=>{const inp=document.getElementById('new-cat-input');const label=inp.value.trim();if(!label)return;const id=label.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9\-]/g,'');if(S.categories.find(c=>c.id===id))return;S.categories.push({id,label});inp.value='';renderCatList();saveToBin(true);render();};
+window.removeCategory=id=>{if(!confirm('Remove this category? Tasks will keep their category tags.'))return;S.categories=S.categories.filter(c=>c.id!==id);renderCatList();saveToBin(true);render();};
 
 // State
 let S={
@@ -997,8 +1018,8 @@ window.togT=(cid,tid)=>{const c=S.campaigns.find(c=>c.id===cid);const t=c.tasks.
 window.togG=tid=>{const t=S.generalTasks.find(t=>t.id===tid);t.status=t.status==='done'?'not-started':'done';saveToBin();render();};
 window.xT=tid=>{S.exp=S.exp===tid?null:tid;render();};
 window.startEditCom=id=>{const found=findCommentById(id);if(!found)return;S.editCom={id,type:found.type,cid:found.cid,tid:found.tid};S.editComName=found.comment.name;S.editComText=found.comment.text;render();};
-window.saveEditCom=()=>{if(!S.editCom)return;if(!S.editComName.trim()){alert('Name is required.');return;}if(!S.editComText.trim()){alert('Comment cannot be empty.');return;}const found=findCommentById(S.editCom.id);if(found){found.comment.name=S.editComName.trim();found.comment.text=S.editComText.trim();found.comment.editedDate=new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'});}S.editCom=null;saveToBin();render();};
-window.postCom=(type,cid,tid)=>{const name=S.cName.trim();const key=type+'-'+(cid||'')+(tid?'-'+tid:'');const text=(S.cDraft[key]||'').trim();if(!name){alert('Please enter your name before posting.');return;}if(!text)return;const comment={id:uid(),name,text,date:new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'}),editedDate:null};if(type==='campaign'){S.campaigns.find(c=>c.id===cid).comments.push(comment);}else if(type==='gen'){S.generalTasks.find(t=>t.id===tid).comments.push(comment);}else{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).comments.push(comment);}S.cDraft[key]='';saveToBin();render();};
+window.saveEditCom=()=>{if(!S.editCom)return;if(!S.editComName.trim()){alert('Name is required.');return;}if(!S.editComText.trim()){alert('Comment cannot be empty.');return;}const found=findCommentById(S.editCom.id);if(found){found.comment.name=S.editComName.trim();found.comment.text=S.editComText.trim();found.comment.editedDate=new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'});}S.editCom=null;saveToBin(true);render();};
+window.postCom=(type,cid,tid)=>{const name=S.cName.trim();const key=type+'-'+(cid||'')+(tid?'-'+tid:'');const text=(S.cDraft[key]||'').trim();if(!name){alert('Please enter your name before posting.');return;}if(!text)return;const comment={id:uid(),name,text,date:new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'}),editedDate:null};if(type==='campaign'){S.campaigns.find(c=>c.id===cid).comments.push(comment);}else if(type==='gen'){S.generalTasks.find(t=>t.id===tid).comments.push(comment);}else{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).comments.push(comment);}S.cDraft[key]='';saveToBin(true);render();};
 window.setSt=(cid,tid,v)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).status=v;saveToBin();render();};
 window.setSg=(tid,v)=>{S.generalTasks.find(t=>t.id===tid).status=v;saveToBin();render();};
 window.setBlk=(cid,tid,v)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).blk=v;saveToBin();};
@@ -1029,21 +1050,21 @@ window.toggleGenWho=(tid,m)=>{const t=S.generalTasks.find(t=>t.id===tid);t.who=t
 window.togAtWho=m=>{S.atWho=S.atWho.includes(m)?S.atWho.filter(x=>x!==m):[...S.atWho,m];render();};
 window.togAtCat=c=>{S.atCats=S.atCats.includes(c)?S.atCats.filter(x=>x!==c):[...S.atCats,c];render();};
 window.togRqWho=m=>{if(!S.rqF.who)S.rqF.who=[];S.rqF.who=S.rqF.who.includes(m)?S.rqF.who.filter(x=>x!==m):[...S.rqF.who,m];render();};
-window.archiveTask=(cid,tid)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).archived=true;S.exp=null;saveToBin();render();};
-window.unarchiveTask=(cid,tid)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).archived=false;saveToBin();render();};
-window.deleteTask=(cid,tid)=>{if(!confirm('Permanently delete this task?'))return;const c=S.campaigns.find(c=>c.id===cid);c.tasks=c.tasks.filter(t=>t.id!==tid);S.exp=null;saveToBin();render();};
-window.archiveGenTask=tid=>{S.generalTasks.find(t=>t.id===tid).archived=true;S.exp=null;saveToBin();render();};
-window.unarchiveGenTask=tid=>{S.generalTasks.find(t=>t.id===tid).archived=false;saveToBin();render();};
-window.deleteGenTask=tid=>{if(!confirm('Permanently delete this task?'))return;S.generalTasks=S.generalTasks.filter(t=>t.id!==tid);S.exp=null;saveToBin();render();};
+window.archiveTask=(cid,tid)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).archived=true;S.exp=null;saveToBin(true);render();};
+window.unarchiveTask=(cid,tid)=>{S.campaigns.find(c=>c.id===cid).tasks.find(t=>t.id===tid).archived=false;saveToBin(true);render();};
+window.deleteTask=(cid,tid)=>{if(!confirm('Permanently delete this task?'))return;const c=S.campaigns.find(c=>c.id===cid);c.tasks=c.tasks.filter(t=>t.id!==tid);S.exp=null;saveToBin(true);render();};
+window.archiveGenTask=tid=>{S.generalTasks.find(t=>t.id===tid).archived=true;S.exp=null;saveToBin(true);render();};
+window.unarchiveGenTask=tid=>{S.generalTasks.find(t=>t.id===tid).archived=false;saveToBin(true);render();};
+window.deleteGenTask=tid=>{if(!confirm('Permanently delete this task?'))return;S.generalTasks=S.generalTasks.filter(t=>t.id!==tid);S.exp=null;saveToBin(true);render();};
 window.addLink=(cid)=>{const label=document.getElementById('lnk-label-'+cid).value.trim();const url=document.getElementById('lnk-url-'+cid).value.trim();if(!url)return;const c=S.campaigns.find(c=>c.id===cid);if(!c.links)c.links=[];c.links.push({label:label||url,url});saveToBin();render();};
 window.removeLink=(cid,i)=>{const c=S.campaigns.find(c=>c.id===cid);c.links.splice(i,1);saveToBin();render();};
-window.saveTsk=(cid)=>{if(!S.atName.trim())return;const c=S.campaigns.find(c=>c.id===cid);c.tasks.push({id:'t'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['campaigns'],blk:'',archived:false,desc:S.atDesc||'',taskStart:''});S.atDesc='';c.tasks=sortByDue(c.tasks);S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['campaigns'];saveToBin();render();};
-window.saveGen=()=>{if(!S.atName.trim())return;S.generalTasks.push({id:'gen'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['Other'],blk:'',notes:S.agNotes,links:[],archived:false,desc:S.atDesc||'',taskStart:''});S.atDesc='';S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['Other'];S.agNotes='';saveToBin();render();};
-window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venues:nc.venues&&nc.venues.length?[...nc.venues]:['All Venues'],venue:(nc.venues&&nc.venues[0])||'All Venues',status:nc.status,start:nc.start,end:nc.end,launchDate:nc.launchDate||'',launchTBC:nc.launchTBC||false,desc:nc.desc,color:nc.color||'#C8131A',image:nc.image||null,links:[],comments:[],archived:false,results:{covers:'',promo:'',alac:'',notes:'',past:[]},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venues:['All Venues'],venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns'],launchDate:'',launchTBC:false,image:null};saveToBin();render();};
+window.saveTsk=(cid)=>{if(!S.atName.trim())return;const c=S.campaigns.find(c=>c.id===cid);c.tasks.push({id:'t'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['campaigns'],blk:'',archived:false,desc:S.atDesc||'',taskStart:''});S.atDesc='';c.tasks=sortByDue(c.tasks);S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['campaigns'];saveToBin(true);render();};
+window.saveGen=()=>{if(!S.atName.trim())return;S.generalTasks.push({id:'gen'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['Other'],blk:'',notes:S.agNotes,links:[],archived:false,desc:S.atDesc||'',taskStart:''});S.atDesc='';S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['Other'];S.agNotes='';saveToBin(true);render();};
+window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venues:nc.venues&&nc.venues.length?[...nc.venues]:['All Venues'],venue:(nc.venues&&nc.venues[0])||'All Venues',status:nc.status,start:nc.start,end:nc.end,launchDate:nc.launchDate||'',launchTBC:nc.launchTBC||false,desc:nc.desc,color:nc.color||'#C8131A',image:nc.image||null,links:[],comments:[],archived:false,results:{covers:'',promo:'',alac:'',notes:'',past:[]},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venues:['All Venues'],venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns'],launchDate:'',launchTBC:false,image:null};saveToBin(true);render();};
 window.upR=(cid,f,v)=>{const c=S.campaigns.find(c=>c.id===cid);if(!c.results)c.results={covers:'',promo:'',alac:'',notes:''};c.results[f]=v;saveToBin();};
-window.subReq=()=>{if(!S.rqF.name.trim())return;S.requests.push({id:'r'+uid(),name:S.rqF.name.trim(),details:S.rqF.details,cid:S.rqF.cid,who:[...(S.rqF.who||[])],due:S.rqF.due,by:S.rqF.by,status:'pending',rejComment:'',date:new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'})});S.rqF={name:'',details:'',cid:'',who:[],due:'',by:''};saveToBin();render();};
-window.accReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='accepted';const whoArr=Array.isArray(r.who)?r.who:(r.who?r.who.split(',').map(s=>s.trim()).filter(Boolean):[]);if(r.cid){const c=S.campaigns.find(c=>c.id===r.cid);if(c){c.tasks.push({id:'t'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);}}else{S.generalTasks.push({id:'gen'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['Other'],blk:'',notes:r.details||'',links:[],archived:false});}saveToBin();render();};
-window.rejReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='rejected';r.rejComment=S.rjC[rid]||'';saveToBin();render();};
+window.subReq=()=>{if(!S.rqF.name.trim())return;S.requests.push({id:'r'+uid(),name:S.rqF.name.trim(),details:S.rqF.details,cid:S.rqF.cid,who:[...(S.rqF.who||[])],due:S.rqF.due,by:S.rqF.by,status:'pending',rejComment:'',date:new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'})});S.rqF={name:'',details:'',cid:'',who:[],due:'',by:''};saveToBin(true);render();};
+window.accReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='accepted';const whoArr=Array.isArray(r.who)?r.who:(r.who?r.who.split(',').map(s=>s.trim()).filter(Boolean):[]);if(r.cid){const c=S.campaigns.find(c=>c.id===r.cid);if(c){c.tasks.push({id:'t'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);}}else{S.generalTasks.push({id:'gen'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['Other'],blk:'',notes:r.details||'',links:[],archived:false});}saveToBin(true);render();};
+window.rejReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='rejected';r.rejComment=S.rjC[rid]||'';saveToBin(true);render();};
 window.readFile=async(inp)=>{const file=inp.files[0];if(!file)return;const ext=file.name.split('.').pop().toLowerCase();if(['txt','md','csv'].includes(ext)){const rd=new FileReader();rd.onload=e=>{S.addTxt+=(S.addTxt?'\n\n':'')+e.target.result;render();};rd.readAsText(file);}else if(ext==='docx'&&typeof mammoth!=='undefined'){const rd=new FileReader();rd.onload=async e=>{try{const res=await mammoth.extractRawText({arrayBuffer:e.target.result});S.addTxt+=(S.addTxt?'\n\n':'')+res.value;render();}catch(err){alert('Could not read .docx — paste the text instead.');}};rd.readAsArrayBuffer(file);}};
 window.addAI=async()=>{if(!S.addTxt.trim())return;S.addLoad=true;render();try{const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:'Campaign parser for 1-Arden Singapore. Venues: Arden Bar, Kaarla, Oumi, Sol and Luna. Team: '+S.team.join(', ')+'. Categories: '+S.categories.map(c=>c.id).join(', ')+'. Today: 2026-04-15.\n\nParse into JSON only:\n{"id":"kebab","name":"Name","cats":["campaigns"],"venue":"All Venues","status":"planned","start":"YYYY-MM-DD","end":"YYYY-MM-DD","desc":"summary","links":[],"color":"#C8131A","tasks":[{"id":"t-x","name":"Task","status":"not-started","who":["Daryl"],"due":"YYYY-MM-DD","comments":[],"cats":["campaigns"],"blk":"","archived":false}],"results":{"covers":"","promo":"","alac":"","notes":""}}\n\nBrief:\n'+S.addTxt}]})});const d=await r.json();const camp=JSON.parse(d.content[0].text.replace(/```json|```/g,'').trim());if(!camp.links)camp.links=[];camp.tasks=sortByDue(camp.tasks);S.campaigns.push(camp);S.showAdd=false;S.addTxt='';S.tab='campaigns';saveToBin();}catch(e){alert('Could not parse brief.');}S.addLoad=false;render();};
 window.genBrief=async()=>{if(!S.briefTxt.trim())return;S.briefLoad=true;render();try{const cl=S.campaigns.map(c=>'- '+c.name+' ('+c.venue+', '+c.status+', '+pct(c)+'% complete)').join('\n');const r=await fetch('https://api.anthropic.com/v1/messages',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:1000,messages:[{role:'user',content:'Assistant Marketing Manager, 1-Arden CapitaSpring Singapore. Venues: Arden Bar, Kaarla, Oumi, Sol and Luna. Today: 15 Apr 2026.\n\nCampaigns:\n'+cl+'\n\nFrom meeting notes, write a weekly brief: Campaign Status, Key Updates, Action Items, Upcoming Deadlines, Notes.\n\nNotes:\n'+S.briefTxt}]})});const d=await r.json();S.briefOut=d.content[0].text;}catch(e){S.briefOut='Error generating brief.';}S.briefLoad=false;render();};
@@ -1122,13 +1143,13 @@ window.uploadCampImage=function(cid,input){
   var rd=new FileReader();
   rd.onload=function(e){
     S.campaigns.find(function(x){return x.id===cid;}).image=e.target.result;
-    saveToBin();render();
+    saveToBin(true);render();
   };
   rd.readAsDataURL(file);
 };
 window.removeCampImage=function(cid){
   S.campaigns.find(function(x){return x.id===cid;}).image=null;
-  saveToBin();render();
+  saveToBin(true);render();
 };
 window.uploadNewCampImage=function(input){
   var file=input.files[0];if(!file)return;
@@ -1144,11 +1165,11 @@ window.addPast=function(cid){
   var c=S.campaigns.find(function(x){return x.id===cid;});
   if(!c.results.past)c.results.past=[];
   c.results.past.push({label:'',covers:'',promo:'',rev:''});
-  saveToBin();render();
+  saveToBin(true);render();
 };
 window.removePast=function(cid,i){
   S.campaigns.find(function(x){return x.id===cid;}).results.past.splice(i,1);
-  saveToBin();render();
+  saveToBin(true);render();
 };
 window.updPast=function(cid,i,field,val){
   S.campaigns.find(function(x){return x.id===cid;}).results.past[i][field]=val;
@@ -1182,12 +1203,12 @@ window.scrollToCamp=function(cid){
 window.archiveCamp=function(cid){
   if(!confirm('Archive this campaign?'))return;
   S.campaigns.find(function(c){return c.id===cid;}).archived=true;
-  saveToBin();render();
+  saveToBin(true);render();
 };
 window.deleteCamp=function(cid){
   if(!confirm('Permanently delete this campaign and all its tasks?'))return;
   S.campaigns=S.campaigns.filter(function(c){return c.id!==cid;});
-  S.openCamps.delete(cid);saveToBin();render();
+  S.openCamps.delete(cid);saveToBin(true);render();
 };
 window.dragSbStart=function(i){S.dragSbSrc=i;};
 window.dragSbOver=function(e,i){e.preventDefault();};
