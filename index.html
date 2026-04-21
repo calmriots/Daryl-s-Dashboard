@@ -111,7 +111,73 @@ button:disabled{opacity:0.4;cursor:not-allowed}
 .drag-item:active{cursor:grabbing}
 .drag-handle{color:var(--muted);font-size:14px;flex-shrink:0;cursor:grab}
 input[type=text],input[type=date],input[type=number],textarea,select{font-family:inherit}
-@media(max-width:600px){.g2,.g3{grid-template-columns:1fr}#sp{width:100%}.ph-logo{font-size:9px}}
+/* ============================================================================
+   Mobile styles — tablet (<=820px) and phone (<=600px) breakpoints
+   ============================================================================ */
+@media(max-width:820px){
+  .content{padding:1rem}
+  /* Campaigns tab: stack sidebar above main instead of side-by-side */
+  .rc-wrap{flex-direction:column;margin:-1rem !important}
+  .rc-sb{width:100% !important;position:static !important;max-height:none !important;border-right:none !important;border-bottom:1px solid var(--border)}
+  .rc-main{padding:1rem !important;width:100%}
+  /* Allow nav tabs to scroll horizontally */
+  .nav-wrap{overflow-x:auto;overflow-y:hidden;scrollbar-width:none;-webkit-overflow-scrolling:touch}
+  .nav-wrap::-webkit-scrollbar{display:none}
+  .hb-wrap{position:sticky;right:0;background:var(--black);margin-left:auto;box-shadow:-8px 0 8px -4px rgba(0,0,0,0.4)}
+}
+@media(max-width:600px){
+  .g2,.g3{grid-template-columns:1fr}
+  #sp{width:100%}
+  /* Header: compact padding, shorter logo label */
+  .ph{padding:0 0.75rem;height:48px}
+  .ph-logo{font-size:9px;letter-spacing:0.1em;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0;flex:1;margin-right:6px}
+  .ph-right{gap:3px;flex-shrink:0}
+  .ph-right button{padding:5px 9px !important;font-size:10px !important}
+  /* Nav bar: tighter tabs, sticky top adjusts for shorter header */
+  .nav-wrap{padding:0 0.5rem;top:48px}
+  .tab{padding:12px 10px;font-size:10px}
+  .hb-btn{padding:12px 10px !important;font-size:10px !important}
+  /* Content: tighter padding */
+  .content{padding:1rem 0.75rem}
+  /* Metrics: tighter */
+  .mets{gap:6px}
+  .met{padding:10px 12px}
+  .mv{font-size:22px}
+  /* Cards: tighter */
+  .card{padding:14px 14px}
+  /* Campaign card image variant: smaller portrait */
+  .card-img{width:70px !important}
+  /* Gantt chart: narrower label column */
+  .gantt-label{width:90px !important;font-size:10px !important}
+  .gantt-months .gantt-label-spacer{width:90px !important}
+  .gantt-months{font-size:9px !important}
+  /* Task rows: tighter */
+  .tr{gap:6px;padding:10px 0}
+  .tdue{font-size:10px}
+  /* Task expanded: reduce indent */
+  .tx{margin-left:14px;padding:10px 12px}
+  /* Forms: tighter add-task and campaign-edit panels */
+  .atf,.ap{padding:10px 12px}
+  /* Who/cat chips: slightly larger tap target */
+  .who-chip{padding:5px 12px;margin:4px 4px 0 0}
+  .chip{padding:3px 9px}
+  /* Campaigns sidebar (when stacked) */
+  .rc-sb{max-height:none}
+  /* Settings panel already 100% width via existing rule */
+  /* Hamburger drop positioned within viewport */
+  .hb-drop{right:0;min-width:160px;max-height:70vh;overflow-y:auto}
+  /* Results table: ensure horizontal scroll stays smooth */
+  /* Sync badge: avoid covering bottom controls */
+  #sync{bottom:12px;right:12px;font-size:10px;padding:5px 12px}
+  /* Modals / setup screen: tighter */
+  .sc{padding:1.75rem 1.5rem}
+  .sc h2{font-size:19px}
+}
+@media(max-width:380px){
+  /* Very narrow phones: hide the long "1-Spring | Group Dining" suffix */
+  .ph-logo{font-size:8px}
+  .tab{padding:12px 8px;font-size:9px}
+}
 </style>
 </head>
 <body>
@@ -355,7 +421,7 @@ let S={
   cDraft:{},aLE:null,
   addTF:null,atName:'',atWho:[],atDue:'',atCats:['campaigns'],agNotes:'',
   editCamp:null,openCamps:new Set(),dragCampSrc:null,dragSbSrc:null,sbMenu:null,fSortByDate:false,cName:'',descExp:null,atDesc:'',editCom:null,editComText:'',editComName:'',
-  newCamp:{name:'',venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns']},
+  newCamp:{name:'',venues:['All Venues'],venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns'],launchDate:'',launchTBC:false,image:null},
   requests:[],rqF:{name:'',details:'',cid:'',who:[],due:'',by:''},rjC:{},
   team:['Daryl','Philicia','Zul','Keisha','Jit Seng'],
   categories:[
@@ -608,7 +674,7 @@ function newCampForm(){
   const cats=(nc.cats||[]).map(cat=>'<span class="cat-pill">'+esc(cat)+'<button class="cat-pill-btn" onclick="S.newCamp.cats=S.newCamp.cats.filter(x=>x!==\''+cat+'\');render()">✕</button></span>').join('');
   const remaining=S.categories.filter(cat=>!(nc.cats||[]).includes(cat.id));
   const addDrop=remaining.length?'<select class="sml" onchange="if(this.value){S.newCamp.cats=[...S.newCamp.cats,this.value];this.value=\'\';render()}" style="font-size:11px;padding:2px 5px"><option value="">+ category</option>'+remaining.map(cat=>'<option value="'+esc(cat.id)+'">'+esc(cat.label)+'</option>').join('')+'</select>':'';
-  return '<div class="ap"><div style="font-size:13px;font-weight:700;letter-spacing:-0.01em;margin-bottom:12px">Create campaign</div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Campaign name</div><input type="text" value="'+esc(nc.name)+'" placeholder="Campaign name…" style="width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--bd2);border-radius:3px" oninput="S.newCamp.name=this.value"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Status</div><select class="sml" style="width:100%" onchange="S.newCamp.status=this.value"><option value="active"'+(nc.status==='active'?' selected':'')+'>Active</option><option value="planned"'+(nc.status==='planned'?' selected':'')+'>Planned</option></select></div></div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Start date</div><input type="date" value="'+(nc.start||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="S.newCamp.start=this.value"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">End date</div><input type="date" value="'+(nc.end||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="S.newCamp.end=this.value"></div></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Venues</div><div style=\"display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px\">'+getNewCampVenueChips()+'</div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Description</div><textarea style="width:100%;min-height:60px;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical" placeholder="Brief description…" oninput="S.newCamp.desc=this.value">'+esc(nc.desc)+'</textarea></div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Accent colour</div><input type="color" value="'+(nc.color||'#C8131A')+'" style="width:40px;height:28px;padding:0;border:1px solid var(--bd2);border-radius:3px;cursor:pointer" onchange="S.newCamp.color=this.value"></div></div><div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+cats+addDrop+'</div></div><div style="display:flex;gap:8px"><button class="primary" onclick="saveNewCamp()">Create campaign</button><button onclick="S.showManual=false;render()">Cancel</button></div></div>';
+  return '<div class="ap"><div style="font-size:13px;font-weight:700;letter-spacing:-0.01em;margin-bottom:12px">Create campaign</div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Campaign name</div><input type="text" value="'+esc(nc.name)+'" placeholder="Campaign name…" style="width:100%;font-size:13px;padding:6px 8px;border:1px solid var(--bd2);border-radius:3px" oninput="S.newCamp.name=this.value"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Status</div><select class="sml" style="width:100%" onchange="S.newCamp.status=this.value"><option value="active"'+(nc.status==='active'?' selected':'')+'>Active</option><option value="planned"'+(nc.status==='planned'?' selected':'')+'>Planned</option></select></div></div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Start date</div><input type="date" value="'+(nc.start||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="S.newCamp.start=this.value"></div><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">End date</div><input type="date" value="'+(nc.end||'')+'" style="width:100%;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="S.newCamp.end=this.value"></div></div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Venues</div><div style=\"display:flex;flex-wrap:wrap;gap:3px;margin-bottom:4px\">'+getNewCampVenueChips()+'</div><div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Description</div><textarea style="width:100%;min-height:60px;font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px;font-family:inherit;resize:vertical" placeholder="Brief description…" oninput="S.newCamp.desc=this.value">'+esc(nc.desc)+'</textarea></div><div class="g2" style="margin-bottom:8px"><div><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:3px">Accent colour</div><input type="color" value="'+(nc.color||'#C8131A')+'" style="width:40px;height:28px;padding:0;border:1px solid var(--bd2);border-radius:3px;cursor:pointer" onchange="S.newCamp.color=this.value"></div></div>'+'<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Launch date</div><div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap"><input type="date" value="'+(nc.launchDate||'')+'" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="S.newCamp.launchDate=this.value"><label style="display:flex;align-items:center;gap:5px;font-size:12px;cursor:pointer"><input type="checkbox" '+(nc.launchTBC?'checked ':'')+' onchange="S.newCamp.launchTBC=this.checked" style="accent-color:var(--red);cursor:pointer"> TBC</label></div></div>'+'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Campaign image</div>'+(nc.image?'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><img src="'+nc.image+'" style="width:50px;height:70px;object-fit:cover;border-radius:3px;border:1px solid var(--border)"><button onclick="removeNewCampImage()" style="font-size:11px;padding:3px 9px;color:var(--red);border-color:rgba(200,19,26,0.2)">Remove image</button></div>':'<div style="font-size:12px;color:var(--muted);margin-bottom:6px">No image uploaded.</div>')+'<input type="file" accept="image/*" onchange="uploadNewCampImage(this)" style="font-size:12px"></div>'+'<div style="margin-bottom:12px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:6px">Categories</div><div style="display:flex;align-items:center;flex-wrap:wrap;gap:4px">'+cats+addDrop+'</div></div><div style="display:flex;gap:8px"><button class="primary" onclick="saveNewCamp()">Create campaign</button><button onclick="S.showManual=false;render()">Cancel</button></div></div>';
 }
 
 function cCard(c,_st){
@@ -664,7 +730,7 @@ function cCard(c,_st){
   // Wrap with image if present — image is same height as card (align-self:stretch)
   if(c.image){
     return '<div draggable="true" ondragstart="dragCampStart(\''+c.id+'\')" ondragover="dragCampOver(event,\''+c.id+'\')" ondrop="dragCampDrop(\''+c.id+'\')" ondragend="dragCampEnd()" style="display:flex;align-items:stretch;margin-bottom:12px;border-radius:4px;overflow:hidden;border:1px solid var(--border);background:white;border-left:3px solid '+c.color+'">'
-      +'<img src="'+c.image+'" style="width:90px;flex-shrink:0;object-fit:cover;align-self:stretch;display:block">'
+      +'<img class="card-img" src="'+c.image+'" style="width:90px;flex-shrink:0;object-fit:cover;align-self:stretch;display:block">'
       +'<div style="flex:1;min-width:0;padding:16px 18px">'+inner+'</div>'
       +'</div>';
   }
@@ -733,7 +799,7 @@ function rDash(){
     const launchWidth=lp!==null?Math.max(0,e-lp):0;
     const fullWidth=lp===null?Math.max(2,e-s):0;
     return '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">'
-      +'<div style="width:140px;font-size:11px;font-weight:600;color:#444;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">'+esc(c.name)+'</div>'
+      +'<div class="gantt-label" style="width:140px;font-size:11px;font-weight:600;color:#444;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex-shrink:0">'+esc(c.name)+'</div>'
       +'<div style="flex:1;position:relative;height:10px;background:rgba(0,0,0,0.08);border-radius:2px;overflow:hidden">'
       +(fullWidth>0?'<div style="position:absolute;left:'+s+'%;width:'+fullWidth+'%;height:100%;background:'+c.color+';border-radius:2px" title="Campaign duration"></div>':'')
       +(prepWidth>0?'<div style="position:absolute;left:'+prepStart+'%;width:'+prepWidth+'%;height:100%;background:#185FA5;border-radius:2px" title="Prep phase"></div>':'')
@@ -752,7 +818,7 @@ function rDash(){
   return '<div class="mets"><div class="met"><div class="ml">Active</div><div class="mv">'+active+'</div></div><div class="met"><div class="ml">Planned</div><div class="mv">'+planned+'</div></div><div class="met"><div class="ml" style="'+(soon.length?'color:var(--red)':'')+'">Due this week</div><div class="mv" style="'+(soon.length?'color:var(--red)':'')+'">'+soon.length+'</div></div><div class="met"><div class="ml" style="'+(ov.length?'color:var(--red)':'')+'">Overdue</div><div class="mv" style="'+(ov.length?'color:var(--red)':'')+'">'+ov.length+'</div></div><div class="met"><div class="ml">General open</div><div class="mv">'+genOpen+'</div></div></div>'
   +'<div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Campaign roadmap — Apr to Jul 2026</div>'
   +legend
-  +'<div style="background:#E8E5DF;border-radius:4px;padding:14px 16px;margin-bottom:1.5rem"><div style="display:flex;margin-bottom:8px"><div style="width:140px;flex-shrink:0"></div><div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr 1fr"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Apr</span><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">May</span><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Jun</span><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Jul</span></div></div>'
+  +'<div style="background:#E8E5DF;border-radius:4px;padding:14px 16px;margin-bottom:1.5rem"><div class="gantt-months" style="display:flex;margin-bottom:8px"><div class="gantt-label-spacer" style="width:140px;flex-shrink:0"></div><div style="flex:1;display:grid;grid-template-columns:1fr 1fr 1fr 1fr"><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Apr</span><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">May</span><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Jun</span><span style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.06em">Jul</span></div></div>'
   +gantt+'</div>'
   +(attn.length?'<div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:10px">Needs attention</div><div class="card" style="padding:0;overflow:hidden;margin-bottom:1.5rem">'+attn.slice(0,8).map((t,i)=>{const d=du(t.due);return '<div style="display:flex;align-items:center;gap:10px;padding:10px 16px;'+(i<Math.min(8,attn.length)-1?'border-bottom:1px solid var(--faint)':'')+'">'+( d<0?'<span style="display:inline-block;padding:2px 9px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:#FDEAEA;color:var(--red)">Overdue</span>':'<span style="display:inline-block;padding:2px 9px;border-radius:100px;font-size:10px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;background:#FFF0CC;color:#8A5B00">Due soon</span>')+'<span style="font-size:13px;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:500">'+esc(t.name)+'</span><span style="font-size:11px;color:var(--muted)">'+esc(t.cn)+'</span><span style="font-size:11px;color:'+(d<0?'var(--red)':'var(--muted)')+'">'+fd(t.due)+'</span></div>';}).join('')+'</div>':'')
   +'<div style="font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:12px">All campaigns</div>'+S.campaigns.filter(c=>!c.archived).map(c=>cCard(c,false)).join('');
@@ -796,10 +862,10 @@ function rCamps(){
   }).join('');
 
   var byDateBtn='<button onclick="S.fSortByDate=!S.fSortByDate;render()" title="Sort by launch date" style="font-size:10px;padding:2px 8px;'+(S.fSortByDate?'background:var(--black);color:#fff;border-color:var(--black)':'')+'">By date</button>';
-  var createBtn='<button onclick="S.showManual=!S.showManual;S.showAdd=false;S.newCamp={name:\'\',venues:[\'All Venues\'],venue:\'All Venues\',status:\'active\',start:\'\',end:\'\',desc:\'\',color:\'#C8131A\',cats:[\'campaigns\'],launchDate:\'\',launchTBC:false};render()" style="width:100%;font-size:11px;margin-bottom:5px;'+(S.showManual?'background:var(--black);color:#fff;border-color:var(--black)':'')+'">+ Create</button>';
+  var createBtn='<button onclick="S.showManual=!S.showManual;S.showAdd=false;S.newCamp={name:\'\',venues:[\'All Venues\'],venue:\'All Venues\',status:\'active\',start:\'\',end:\'\',desc:\'\',color:\'#C8131A\',cats:[\'campaigns\'],launchDate:\'\',launchTBC:false,image:null};render()" style="width:100%;font-size:11px;margin-bottom:5px;'+(S.showManual?'background:var(--black);color:#fff;border-color:var(--black)':'')+'">+ Create</button>';
   var briefBtn='<button onclick="S.showAdd=!S.showAdd;S.showManual=false;render()" style="width:100%;font-size:11px;'+(S.showAdd?'background:var(--black);color:#fff;border-color:var(--black)':'')+'">Brief parser &#8599;</button>';
 
-  var sidebar='<div style="width:210px;flex-shrink:0;border-right:1px solid var(--border);background:white;position:sticky;top:104px;max-height:calc(100vh - 108px);overflow-y:auto;overflow-x:visible">'
+  var sidebar='<div class="rc-sb" style="width:210px;flex-shrink:0;border-right:1px solid var(--border);background:white;position:sticky;top:104px;max-height:calc(100vh - 108px);overflow-y:auto;overflow-x:visible">'
     +'<div style="padding:12px 14px 10px;border-bottom:1px solid var(--faint)">'
     +'<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">'
     +'<div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted)">Campaigns</div>'
@@ -817,13 +883,13 @@ function rCamps(){
     +'<div style="display:flex;gap:8px;margin-top:10px"><button class="primary" onclick="addAI()" '+(S.addLoad?'disabled':'')+'>'+(S.addLoad?'Parsing\u2026':'Parse \u2197')+'</button><button onclick="S.showAdd=false;S.addTxt=\'\';render()">Cancel</button></div>'
     +'</div>':'';
 
-  var main='<div style="flex:1;min-width:0;padding:1.5rem">'
+  var main='<div class="rc-main" style="flex:1;min-width:0;padding:1.5rem">'
     +briefPanel
     +(S.showManual?newCampForm():'')
     +sortedCamps.map(c=>'<div id="camp-'+c.id+'">'+cCard(c,false)+'</div>').join('')
     +'</div>';
 
-  return '<div style="display:flex;align-items:flex-start;margin:-1.5rem">'+sidebar+main+'</div>';
+  return '<div class="rc-wrap" style="display:flex;align-items:flex-start;margin:-1.5rem">'+sidebar+main+'</div>';
 }
 
 function rGeneral(){
@@ -966,7 +1032,7 @@ window.addLink=(cid)=>{const label=document.getElementById('lnk-label-'+cid).val
 window.removeLink=(cid,i)=>{const c=S.campaigns.find(c=>c.id===cid);c.links.splice(i,1);saveToBin();render();};
 window.saveTsk=(cid)=>{if(!S.atName.trim())return;const c=S.campaigns.find(c=>c.id===cid);c.tasks.push({id:'t'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['campaigns'],blk:'',archived:false,desc:S.atDesc||'',taskStart:''});S.atDesc='';c.tasks=sortByDue(c.tasks);S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['campaigns'];saveToBin();render();};
 window.saveGen=()=>{if(!S.atName.trim())return;S.generalTasks.push({id:'gen'+uid(),name:S.atName.trim(),status:'not-started',who:S.atWho.length?[...S.atWho]:['Daryl'],due:S.atDue,comments:[],cats:S.atCats.length?[...S.atCats]:['Other'],blk:'',notes:S.agNotes,links:[],archived:false,desc:S.atDesc||'',taskStart:''});S.atDesc='';S.addTF=null;S.atName='';S.atWho=[];S.atDue='';S.atCats=['Other'];S.agNotes='';saveToBin();render();};
-window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venues:nc.venues&&nc.venues.length?[...nc.venues]:['All Venues'],venue:(nc.venues&&nc.venues[0])||'All Venues',launchDate:nc.launchDate||'',launchTBC:nc.launchTBC||false,archived:false,image:null,launchDate:nc.launchDate||'',launchTBC:nc.launchTBC||false,archived:false,status:nc.status,start:nc.start,end:nc.end,desc:nc.desc,links:[],comments:[],color:nc.color||'#C8131A',results:{covers:'',promo:'',alac:'',notes:''},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venues:['All Venues'],venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns'],launchDate:'',launchTBC:false};saveToBin();render();};
+window.saveNewCamp=()=>{const nc=S.newCamp;if(!nc.name.trim()){alert('Campaign name required.');return;}const camp={id:'c'+uid(),name:nc.name.trim(),cats:nc.cats.length?[...nc.cats]:['campaigns'],venues:nc.venues&&nc.venues.length?[...nc.venues]:['All Venues'],venue:(nc.venues&&nc.venues[0])||'All Venues',status:nc.status,start:nc.start,end:nc.end,launchDate:nc.launchDate||'',launchTBC:nc.launchTBC||false,desc:nc.desc,color:nc.color||'#C8131A',image:nc.image||null,links:[],comments:[],archived:false,results:{covers:'',promo:'',alac:'',notes:'',past:[]},tasks:[]};S.campaigns.push(camp);S.showManual=false;S.newCamp={name:'',venues:['All Venues'],venue:'All Venues',status:'active',start:'',end:'',desc:'',color:'#C8131A',cats:['campaigns'],launchDate:'',launchTBC:false,image:null};saveToBin();render();};
 window.upR=(cid,f,v)=>{const c=S.campaigns.find(c=>c.id===cid);if(!c.results)c.results={covers:'',promo:'',alac:'',notes:''};c.results[f]=v;saveToBin();};
 window.subReq=()=>{if(!S.rqF.name.trim())return;S.requests.push({id:'r'+uid(),name:S.rqF.name.trim(),details:S.rqF.details,cid:S.rqF.cid,who:[...(S.rqF.who||[])],due:S.rqF.due,by:S.rqF.by,status:'pending',rejComment:'',date:new Date().toLocaleDateString('en-SG',{day:'numeric',month:'short'})});S.rqF={name:'',details:'',cid:'',who:[],due:'',by:''};saveToBin();render();};
 window.accReq=(rid)=>{const r=S.requests.find(r=>r.id===rid);r.status='accepted';const whoArr=Array.isArray(r.who)?r.who:(r.who?r.who.split(',').map(s=>s.trim()).filter(Boolean):[]);if(r.cid){const c=S.campaigns.find(c=>c.id===r.cid);if(c){c.tasks.push({id:'t'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['campaigns'],blk:'',archived:false});c.tasks=sortByDue(c.tasks);}}else{S.generalTasks.push({id:'gen'+uid(),name:r.name,status:'not-started',who:whoArr.length?whoArr:['Daryl'],due:r.due,comments:[{a:'System',t:'Added from request by '+r.by+'. '+(r.details||'').trim(),d:r.date}],cats:['Other'],blk:'',notes:r.details||'',links:[],archived:false});}saveToBin();render();};
@@ -1007,7 +1073,7 @@ window.toggleNewCampVenue=function(v){
   render();
 };
 // ─── Campaign toggle open/close ───────────────────────────
-window._hcc=function(e,cid){if(!e.target.closest('button'))toggleCampOpen(cid);};
+window._hcc=function(e,cid){if(e.target.closest('button,a,input,select,textarea,label,.tr,.tx,.ap,.atf,.cm,.upbox'))return;toggleCampOpen(cid);};
 window.toggleCampOpen=function(cid){
   if(S.openCamps.has(cid))S.openCamps.delete(cid);else S.openCamps.add(cid);render();
 };
@@ -1056,6 +1122,15 @@ window.uploadCampImage=function(cid,input){
 window.removeCampImage=function(cid){
   S.campaigns.find(function(x){return x.id===cid;}).image=null;
   saveToBin();render();
+};
+window.uploadNewCampImage=function(input){
+  var file=input.files[0];if(!file)return;
+  var rd=new FileReader();
+  rd.onload=function(e){S.newCamp.image=e.target.result;render();};
+  rd.readAsDataURL(file);
+};
+window.removeNewCampImage=function(){
+  S.newCamp.image=null;render();
 };
 // ─── Past results ─────────────────────────────────────────
 window.addPast=function(cid){
@@ -1125,7 +1200,6 @@ document.addEventListener('click',function(e){
   if(S.sbMenu&&!e.target.closest('[onclick*="sbMenu"]')){S.sbMenu=null;render();}
 });
 
-window._hcc=function(e,cid){if(!e.target.closest('button'))toggleCampOpen(cid);};
 
 function getPhaseColor(cid,due){
   if(!due||!cid||cid==='gen')return null;
@@ -1152,4 +1226,4 @@ async function init(){
 init();
 </script>
 </body>
-</html+'<div style="margin-bottom:10px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Campaign image</div>'+(c.image?'<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px"><img src="'+c.image+'" style="width:60px;height:85px;object-fit:cover;border-radius:3px;border:1px solid var(--border)"><button onclick="removeCampImage(\''+c.id+'\')" style="font-size:11px;padding:3px 9px;color:var(--red);border-color:rgba(200,19,26,0.2)">Remove</button></div>':'<div style="font-size:12px;color:var(--muted);margin-bottom:6px">No image uploaded.</div>')+'<input type="file" accept="image/*" onchange="uploadCampImage(\''+c.id+'\',this)" style="font-size:12px"></div>'+'<div style="margin-bottom:8px"><div style="font-size:10px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:var(--muted);margin-bottom:5px">Launch date</div><div style="display:flex;align-items:center;gap:10px"><input type="date" value="'+(nc.launchDate||'')+'" style="font-size:12px;padding:5px 8px;border:1px solid var(--bd2);border-radius:3px" onchange="S.newCamp.launchDate=this.value"> <label style="display:flex;align-items:center;gap:5px;font-size:12px"><input type="checkbox" '+(nc.launchTBC?'checked ':'')+' onchange="S.newCamp.launchTBC=this.checked" style="accent-color:var(--red)"> TBC</label></div></div>'>
+</html>
