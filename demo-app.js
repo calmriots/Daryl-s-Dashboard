@@ -1491,49 +1491,74 @@ function signOut() {
 }
 
 // ============================================================
-//                    BOOTSTRAP
+//                    BOOTSTRAP (DEMO — no auth, seed data)
 // ============================================================
+function buildSeedData() {
+  const today = new Date();
+  const iso = d => d.toISOString().slice(0,10);
+  const plus = n => { const x = new Date(today); x.setDate(x.getDate()+n); return iso(x); };
+  const team = [
+    { id: 't1', name: 'Daryl Chen', role: 'Marketing Lead', color: '#3B82F6' },
+    { id: 't2', name: 'Priya Sharma', role: 'Content Strategist', color: '#8B5CF6' },
+    { id: 't3', name: 'Marcus Wong', role: 'Designer', color: '#EC4899' },
+    { id: 't4', name: 'Sofia Reyes', role: 'Digital Producer', color: '#F59E0B' },
+  ];
+  const categories = DEFAULT_CATEGORIES.slice().map(c => ({...c}));
+  const labels = [
+    { id: 'l1', name: 'Quick win', color: '#10B981' },
+    { id: 'l2', name: 'Blocker', color: '#EF4444' },
+    { id: 'l3', name: 'Review', color: '#F59E0B' },
+    { id: 'l4', name: 'Launch', color: '#3B82F6' },
+  ];
+  const campaigns = [
+    { id: 'c1', name: 'Summer Collection Launch', color: '#EC4899', status: 'active', startDate: plus(-14), endDate: plus(30), description: 'Multi-channel rollout of the SS26 capsule: editorial shoot, influencer seeding, paid media push across Meta + TikTok.' },
+    { id: 'c2', name: 'Brand Refresh 2026', color: '#3B82F6', status: 'active', startDate: plus(-30), endDate: plus(60), description: 'Refresh visual identity and rollout across web, social, and OOH.' },
+    { id: 'c3', name: 'Holiday Retail Activation', color: '#F59E0B', status: 'planned', startDate: plus(45), endDate: plus(120), description: 'Pop-up experience in 3 flagship malls with ambassador programming.' },
+    { id: 'c4', name: 'Loyalty Program Relaunch', color: '#10B981', status: 'planned', startDate: plus(20), endDate: plus(90), description: 'Tiered rewards program with app integration.' },
+    { id: 'c5', name: 'Q1 Performance Review', color: '#6B7280', status: 'done', startDate: plus(-90), endDate: plus(-20), description: 'Quarterly analytics readout and ROI deep-dive.' },
+  ];
+  const tasks = [
+    { id: 'tk1', name: 'Finalize SS26 editorial shot list', campaignId: 'c1', categoryId: 'creative', assignees:['t3'], due: plus(0), priority:'high', status:'in_progress', labels:['l4'], notes:'Confirm location, crew, and model selection with creative lead by EOD.', subtasks:[{id:'s1',name:'Lock location',done:true},{id:'s2',name:'Confirm crew',done:true},{id:'s3',name:'Sign talent',done:false}], comments:[] },
+    { id: 'tk2', name: 'Brief influencer seeding list', campaignId: 'c1', categoryId: 'pr', assignees:['t2'], due: plus(0), priority:'high', status:'not_started', labels:[], notes:'Target 30 creators: 10 macro, 20 micro. Focus on lifestyle + fashion.', subtasks:[], comments:[] },
+    { id: 'tk3', name: 'Paid media plan — Meta + TikTok', campaignId: 'c1', categoryId: 'digital', assignees:['t4'], due: plus(-1), priority:'high', status:'in_progress', labels:['l2'], notes:'Waiting on budget sign-off from finance.', subtasks:[], comments:[] },
+    { id: 'tk4', name: 'Brand refresh — logo variations', campaignId: 'c2', categoryId: 'creative', assignees:['t3'], due: plus(3), priority:'med', status:'in_progress', labels:[], notes:'Three directions: modernist, heritage, bold geometric.', subtasks:[{id:'s4',name:'Direction A',done:true},{id:'s5',name:'Direction B',done:false},{id:'s6',name:'Direction C',done:false}], comments:[] },
+    { id: 'tk5', name: 'Typography system documentation', campaignId: 'c2', categoryId: 'creative', assignees:['t3','t2'], due: plus(7), priority:'med', status:'not_started', labels:['l3'], notes:'', subtasks:[], comments:[] },
+    { id: 'tk6', name: 'Website hero redesign', campaignId: 'c2', categoryId: 'web', assignees:['t3'], due: plus(5), priority:'med', status:'not_started', labels:[], notes:'', subtasks:[], comments:[] },
+    { id: 'tk7', name: 'Holiday venue scout — Bangkok flagship', campaignId: 'c3', categoryId: 'events', assignees:['t4'], due: plus(14), priority:'med', status:'not_started', labels:[], notes:'Shortlist 5 malls, evaluate foot-traffic.', subtasks:[], comments:[] },
+    { id: 'tk8', name: 'Ambassador program tier structure', campaignId: 'c3', categoryId: 'community', assignees:['t2'], due: plus(21), priority:'low', status:'not_started', labels:[], notes:'', subtasks:[], comments:[] },
+    { id: 'tk9', name: 'Loyalty app wireframes', campaignId: 'c4', categoryId: 'web', assignees:['t3'], due: plus(10), priority:'med', status:'in_progress', labels:[], notes:'Version 2 after user testing.', subtasks:[], comments:[] },
+    { id: 'tk10', name: 'Partner integration spec', campaignId: 'c4', categoryId: 'ops', assignees:['t4'], due: plus(2), priority:'high', status:'not_started', labels:[], notes:'', subtasks:[], comments:[] },
+    { id: 'tk11', name: 'Weekly Instagram content calendar', categoryId: 'content', assignees:['t2'], due: plus(1), priority:'med', status:'not_started', labels:['l1'], notes:'3 posts, 5 stories, 1 reel. Align with summer launch.', subtasks:[], comments:[] },
+    { id: 'tk12', name: 'Review agency pitch deck', assignees:['t1'], due: plus(0), priority:'med', status:'not_started', labels:['l3'], notes:'', subtasks:[], comments:[] },
+    { id: 'tk13', name: 'Q1 analytics readout', campaignId: 'c5', categoryId: 'analytics', assignees:['t1','t4'], due: plus(-25), priority:'med', status:'done', labels:[], notes:'Delivered to leadership.', subtasks:[], comments:[], completedAt: plus(-22) + 'T10:00:00Z' },
+    { id: 'tk14', name: 'ROI summary deck', campaignId: 'c5', categoryId: 'analytics', assignees:['t1'], due: plus(-22), priority:'low', status:'done', labels:[], notes:'', subtasks:[], comments:[], completedAt: plus(-21) + 'T10:00:00Z' },
+    { id: 'tk15', name: 'Coffee chat with ops team', assignees:['t1'], due: plus(4), priority:'low', status:'not_started', labels:[], notes:'', subtasks:[], comments:[] },
+  ];
+  const requests = [
+    { id: 'r1', title: 'Sales deck for APAC client pitch', from: 'Sales team', description: 'Need a co-branded deck for a pitch in 2 weeks. 10-15 slides.', due: plus(10), priority:'high', status:'pending', createdAt: new Date().toLocaleDateString() },
+    { id: 'r2', title: 'Event banner for retail opening', from: 'Retail ops', description: 'Vinyl banner, 3x6m, for new flagship opening.', due: plus(15), priority:'med', status:'pending', createdAt: new Date().toLocaleDateString() },
+    { id: 'r3', title: 'Press release — partnership announcement', from: 'Business Dev', description: 'New partnership, draft + distribute to trade press.', due: plus(7), priority:'high', status:'accepted', createdAt: new Date(Date.now()-86400000*3).toLocaleDateString() },
+    { id: 'r4', title: 'Print ads for airline magazine', from: 'Brand partnerships', description: 'Full page + spread in regional airline inflight.', due: plus(30), priority:'low', status:'rejected', createdAt: new Date(Date.now()-86400000*5).toLocaleDateString() },
+  ];
+  const smartFilters = [{ id: 'sf1', name: 'Launch-critical', query: 'launch' }];
+  return { team, categories, labels, campaigns, tasks, requests, smartFilters, _revision: 1 };
+}
+
 window.addEventListener('DOMContentLoaded', () => {
-  // Set setup logo from inline base64
-  const setupImg = document.getElementById('setup-logo-img');
-  if (setupImg && window.LOGO_NAVY) setupImg.src = window.LOGO_NAVY;
-
-  // auto-login if key + bin saved
-  const savedKey = localStorage.getItem(LS.KEYS);
-  const urlBin = new URLSearchParams(location.search).get('bin');
-  const savedBin = localStorage.getItem(LS.BIN);
-  const bin = urlBin || savedBin;
-
-  // pre-fill + apply theme to setup screen
   const savedTheme = localStorage.getItem(LS.THEME);
   if (savedTheme === 'dark') { S.dark = true; document.documentElement.classList.add('dark'); }
 
-  if (savedKey && bin) {
-    $('#sc-key').value = savedKey;
-    $('#sc-btn').textContent = 'Reconnecting…';
-    $('#sc-btn').disabled = true;
-    (async () => {
-      try {
-        const r = await fetch(`https://api.jsonbin.io/v3/b/${bin}/latest`, {
-          headers: { 'X-Master-Key': savedKey }
-        });
-        if (!r.ok) throw new Error('auth');
-        const j = await r.json();
-        hydrateState(j.record || {});
-        S.binId = bin; S.apiKey = savedKey;
-        const u = new URL(location); u.searchParams.set('bin', bin); history.replaceState(null,'',u);
-        startApp();
-      } catch(e) {
-        $('#sc-btn').textContent = 'Connect';
-        $('#sc-btn').disabled = false;
-      }
-    })();
-  }
+  // seed + skip auth
+  hydrateState(buildSeedData());
+  S.binId = 'DEMO'; S.apiKey = 'DEMO';
+  startApp();
 
-  // handle Enter in setup
-  $('#sc-key').addEventListener('keydown', e => { if (e.key === 'Enter') doSetup(); });
+  // no-op sync in demo mode
+  window.scheduleSync = () => updateSyncIndicator('on');
+  window.doSync = () => {};
+  window.pollForChanges = () => {};
+  clearInterval(S._pollTimer);
 
-  // QA modal Enter
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') { closeAnyModal(); closeQuickAdd(); closeSettings(); }
     if (e.key === 'n' && !['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName)) {
