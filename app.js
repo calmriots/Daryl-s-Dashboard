@@ -199,18 +199,40 @@ function hydrateState(record) {
   S.smartFilters = record.smartFilters || [];
   S._revision = record._revision || 0;
 
-  // normalize
+  // Legacy-shape migration: old tool may have used different field names
   for (const t of S.tasks) {
+    if (!t.id) t.id = uid();
+    if (!t.name && t.title) t.name = t.title;
+    if (!t.name && t.task) t.name = t.task;
+    if (!t.name && t.text) t.name = t.text;
+    if (!t.name) t.name = 'Untitled task';
+    if (!t.campaignId && t.campaign) t.campaignId = t.campaign;
+    if (!t.categoryId && t.category) t.categoryId = t.category;
+    if (!t.due && t.dueDate) t.due = t.dueDate;
+    if (!t.due && t.deadline) t.due = t.deadline;
+    if (!t.assignees) {
+      if (Array.isArray(t.assignee)) t.assignees = t.assignee;
+      else if (t.assignee) t.assignees = [t.assignee];
+      else if (Array.isArray(t.owners)) t.assignees = t.owners;
+      else if (Array.isArray(t.who)) t.assignees = t.who;
+      else t.assignees = [];
+    }
+    if (!t.status) {
+      if (t.completed === true || t.done === true) t.status = 'done';
+      else if (t.state) t.status = t.state;
+      else t.status = 'not_started';
+    }
     if (!t.subtasks) t.subtasks = [];
-    if (!t.notes) t.notes = t.description || '';
+    if (!t.notes) t.notes = t.description || t.details || '';
     if (!t.labels) t.labels = [];
     if (!t.priority) t.priority = '';
     if (!t.comments) t.comments = [];
-    if (!t.status) t.status = t.done ? 'done' : 'not_started';
   }
   for (const c of S.campaigns) {
     if (!c.status) c.status = 'planned';
     if (!c.color) c.color = '#3B82F6';
+    if (!c.startDate && c.start) c.startDate = c.start;
+    if (!c.endDate && c.end) c.endDate = c.end;
   }
 }
 
