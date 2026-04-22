@@ -42,6 +42,7 @@ const S = {
   sidebarMobileOpen: false,
   dark: false,
   // sync
+  currentUser: null,  // { email, name }
   binId: '',
   apiKey: '',
   syncing: false,
@@ -56,7 +57,10 @@ const LS = {
   BIN:  'oneg.binId',
   THEME:'oneg.theme',
   NAV:  'oneg.sidebarCollapsed',
+  USER: 'oneg.user',
 };
+
+const ALLOWED_DOMAIN = '1-group.sg';
 
 // --- UTILITIES ----------------------------------------------------
 const $ = (sel, ctx=document) => ctx.querySelector(sel);
@@ -112,6 +116,108 @@ function toast(msg, kind='info') {
   el.textContent = msg;
   bar.appendChild(el);
   setTimeout(() => { el.style.opacity='0'; el.style.transition='opacity .3s'; setTimeout(()=>el.remove(),300); }, 2400);
+}
+
+// --- AUTH (email gate) --------------------------------------------
+function deriveNameFromEmail(email) {
+  const prefix = String(email).split('@')[0] || '';
+  // split on . _ - + and digits, title-case each token
+  const tokens = prefix.split(/[._\-+\d]+/).filter(Boolean);
+  if (!tokens.length) return prefix || 'User';
+  return tokens.map(t => t.charAt(0).toUpperCase() + t.slice(1).toLowerCase()).join(' ');
+}
+
+function colorForEmail(email) {
+  // deterministic hue from email
+  let h = 0;
+  for (let i = 0; i < email.length; i++) h = (h * 31 + email.charCodeAt(i)) >>> 0;
+  const hue = h % 360;
+  return `hsl(${hue} 65% 52%)`;
+}
+
+function doAuth() {
+  const input = $('#auth-email');
+  const msg = $('#auth-msg');
+  const btn = $('#auth-btn');
+  const raw = (input.value || '').trim().toLowerCase();
+  msg.textContent = '';
+
+  if (!raw) { msg.textContent = 'Please enter your work email.'; return; }
+  // basic shape check
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
+    msg.textContent = 'That doesn’t look like a valid email.'; return;
+  }
+  const domain = raw.split('@')[1];
+  if (domain !== ALLOWED_DOMAIN) {
+    msg.textContent = `Access is restricted to @${ALLOWED_DOMAIN} addresses.`;
+    return;
+  }
+
+  const user = {
+    email: raw,
+    name: deriveNameFromEmail(raw),
+    color: colorForEmail(raw),
+  };
+  S.currentUser = user;
+  localStorage.setItem(LS.USER, JSON.stringify(user));
+
+  btn.disabled = true;
+  showSetupScreen();
+}
+
+function showAuthGate() {
+  $('#auth-screen').style.display = 'flex';
+  $('#setup-screen').style.display = 'none';
+  $('#app').classList.remove('active');
+  const img = document.getElementById('auth-logo-img');
+  if (img && window.LOGO_NAVY) img.src = window.LOGO_NAVY;
+  setTimeout(() => { const i = $('#auth-email'); if (i) i.focus(); }, 40);
+}
+
+function showSetupScreen() {
+  $('#auth-screen').style.display = 'none';
+  $('#setup-screen').style.display = 'flex';
+  const who = $('#sc-whoami');
+  if (who && S.currentUser) who.textContent = S.currentUser.email;
+  const greet = $('#sc-greeting');
+  if (greet && S.currentUser) {
+    const first = S.currentUser.name.split(' ')[0];
+    greet.textContent = `Hi ${first} — connect to your shared workspace to continue.`;
+  }
+  setTimeout(() => { const k = $('#sc-key'); if (k) k.focus(); }, 40);
+}
+
+function signOutAuth() {
+  if (!confirm('Sign out of this workspace on this device?')) return;
+  localStorage.removeItem(LS.USER);
+  localStorage.removeItem(LS.KEYS);
+  localStorage.removeItem(LS.BIN);
+  location.reload();
+}
+
+function ensureCurrentUserInTeam() {
+  if (!S.currentUser) return;
+  const existing = S.team.find(m =>
+    (m.email && m.email.toLowerCase() === S.currentUser.email) ||
+    m.name === S.currentUser.name
+  );
+  if (existing) {
+    // backfill email on existing record
+    if (!existing.email) existing.email = S.currentUser.email;
+    if (!existing.color) existing.color = S.currentUser.color;
+    S.currentUser.id = existing.id;
+  } else {
+    const member = {
+      id: uid(),
+      name: S.currentUser.name,
+      email: S.currentUser.email,
+      role: 'Team Member',
+      color: S.currentUser.color,
+    };
+    S.team.push(member);
+    S.currentUser.id = member.id;
+    scheduleSync();
+  }
 }
 
 // --- SETUP / JSONBIN -------------------------------------------------
@@ -190,50 +296,166 @@ function initialPayload() {
 }
 
 function hydrateState(record) {
-  S.team = record.team || [];
-  S.categories = record.categories || DEFAULT_CATEGORIES.slice();
-  S.campaigns = record.campaigns || [];
-  S.tasks = record.tasks || [];
-  S.requests = record.requests || [];
+  // --- TEAM: normalize strings → objects ---------------------------
+  const rawTeam = record.team || [];
+  const teamByName = {}; // name (lowercased) → id, for remapping task.who
+  const team = [];
+  const palette = ['#3B82F6','#8B5CF6','#EC4899','#10B981','#F59E0B','#EF4444','#14B8A6','#0EA5E9','#A855F7','#F97316'];
+  let pi = 0;
+  for (const m of rawTeam) {
+    if (!m) continue;
+    if (typeof m === 'string') {
+      const id = 'tm-' + m.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || uid();
+      const member = { id, name: m, role: '', color: palette[pi++ % palette.length] };
+      team.push(member);
+      teamByName[m.toLowerCase()] = id;
+    } else if (typeof m === 'object') {
+      if (!m.id) m.id = uid();
+      if (!m.name && m.fullName) m.name = m.fullName;
+      if (!m.name && m.displayName) m.name = m.displayName;
+      if (!m.name) m.name = 'Unknown';
+      if (!m.color) m.color = palette[pi++ % palette.length];
+      if (!m.role) m.role = '';
+      team.push(m);
+      teamByName[m.name.toLowerCase()] = m.id;
+    }
+  }
+  S.team = team;
+
+  // helper: map a "who" entry (name string OR id) to a team id
+  const resolveWho = (w) => {
+    if (!w) return null;
+    if (typeof w !== 'string') return null;
+    // already an id?
+    if (team.find(m => m.id === w)) return w;
+    // lookup by name
+    const id = teamByName[w.toLowerCase()];
+    if (id) return id;
+    // create a stub member on the fly so we don't lose the data
+    const newId = 'tm-' + w.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || uid();
+    if (!team.find(m => m.id === newId)) {
+      const member = { id: newId, name: w, role: '', color: palette[pi++ % palette.length] };
+      team.push(member);
+      teamByName[w.toLowerCase()] = newId;
+    }
+    return newId;
+  };
+
+  // --- CATEGORIES: label → name, add color/icon --------------------
+  const rawCats = record.categories || [];
+  if (rawCats.length) {
+    const catPalette = ['#8B5CF6','#EC4899','#3B82F6','#10B981','#F59E0B','#EF4444','#14B8A6','#6B7280','#0EA5E9'];
+    S.categories = rawCats.map((c, i) => ({
+      id: c.id || uid(),
+      name: c.name || c.label || c.title || 'Untitled',
+      color: c.color || catPalette[i % catPalette.length],
+      icon: c.icon || '📋',
+    }));
+  } else {
+    S.categories = DEFAULT_CATEGORIES.slice();
+  }
+
+  // --- CAMPAIGNS + NESTED TASKS ------------------------------------
+  const rawCampaigns = record.campaigns || [];
+  const liftedTasks = [];
+  const statusMap = {
+    'not-started':'not_started', 'not_started':'not_started',
+    'in-progress':'in_progress', 'in_progress':'in_progress',
+    'done':'done', 'completed':'done', 'complete':'done',
+    'blocked':'blocked', 'block':'blocked',
+  };
+
+  const normalizeTask = (t, campaignId) => {
+    const task = { ...t };
+    if (!task.id) task.id = uid();
+    if (!task.name) task.name = task.title || task.task || task.text || 'Untitled task';
+    if (campaignId && !task.campaignId) task.campaignId = campaignId;
+    if (!task.campaignId && task.campaign) task.campaignId = task.campaign;
+    if (!task.due) task.due = task.dueDate || task.deadline || '';
+    // assignees from `who` (array of names) OR `assignee` / `owners`
+    let who = [];
+    if (Array.isArray(task.assignees) && task.assignees.length) who = task.assignees;
+    else if (Array.isArray(task.who)) who = task.who;
+    else if (Array.isArray(task.assignee)) who = task.assignee;
+    else if (task.assignee) who = [task.assignee];
+    else if (Array.isArray(task.owners)) who = task.owners;
+    task.assignees = who.map(resolveWho).filter(Boolean);
+    // status: hyphens → underscores
+    const s = (task.status || '').toString();
+    task.status = statusMap[s] || (task.completed === true || task.done === true ? 'done' : 'not_started');
+    // category: `cats` array → first categoryId
+    if (!task.categoryId) {
+      if (Array.isArray(task.cats) && task.cats.length) task.categoryId = task.cats[0];
+      else if (task.category) task.categoryId = task.category;
+    }
+    task.notes = task.notes || task.desc || task.description || task.details || '';
+    task.priority = task.priority || '';
+    task.subtasks = Array.isArray(task.subtasks) ? task.subtasks : [];
+    task.labels = Array.isArray(task.labels) ? task.labels : [];
+    task.comments = Array.isArray(task.comments) ? task.comments : [];
+    // prune legacy-only fields we've absorbed
+    delete task.who; delete task.cats; delete task.desc; delete task.description;
+    delete task.details; delete task.completed; delete task.done;
+    delete task.assignee; delete task.owners; delete task.title; delete task.task;
+    delete task.text; delete task.dueDate; delete task.deadline; delete task.campaign;
+    delete task.category; delete task.state; delete task.blk; delete task.taskStart;
+    return task;
+  };
+
+  // lift nested campaign tasks into a flat list
+  const campaigns = rawCampaigns.map(c => {
+    const campaign = { ...c };
+    if (!campaign.id) campaign.id = uid();
+    if (!campaign.status) campaign.status = 'planned';
+    if (!campaign.color) campaign.color = '#3B82F6';
+    campaign.startDate = campaign.startDate || campaign.start || '';
+    campaign.endDate = campaign.endDate || campaign.end || '';
+    campaign.description = campaign.description || campaign.desc || '';
+    const nested = Array.isArray(campaign.tasks) ? campaign.tasks : [];
+    for (const t of nested) liftedTasks.push(normalizeTask(t, campaign.id));
+    delete campaign.tasks;
+    delete campaign.desc;
+    delete campaign.start; delete campaign.end;
+    return campaign;
+  });
+  S.campaigns = campaigns;
+
+  // top-level legacy tasks (if any) merged with lifted ones
+  const topTasks = (record.tasks || []).map(t => normalizeTask(t, t.campaignId || t.campaign || null));
+  // dedupe by id (lifted + top-level shouldn't collide, but be safe)
+  const seen = new Set();
+  S.tasks = [...liftedTasks, ...topTasks].filter(t => {
+    if (seen.has(t.id)) return false;
+    seen.add(t.id); return true;
+  });
+
+  // Strip categoryId references that don't match any real category (legacy noise)
+  const catIds = new Set(S.categories.map(c => c.id));
+  for (const t of S.tasks) {
+    if (t.categoryId && !catIds.has(t.categoryId)) t.categoryId = '';
+  }
+
+  // --- REQUESTS ----------------------------------------------------
+  S.requests = (record.requests || []).map(r => {
+    const req = { ...r };
+    if (!req.id) req.id = uid();
+    if (!req.name) req.name = req.title || 'Untitled request';
+    req.notes = req.notes || req.details || req.description || '';
+    req.campaignId = req.campaignId || req.cid || '';
+    // assignees from `who`
+    let who = [];
+    if (Array.isArray(req.assignees) && req.assignees.length) who = req.assignees;
+    else if (Array.isArray(req.who)) who = req.who;
+    else if (req.who) who = [req.who];
+    req.assignees = who.map(resolveWho).filter(Boolean);
+    req.status = req.status || 'pending';
+    req.requestedBy = req.requestedBy || req.by || '';
+    return req;
+  });
+
   S.labels = record.labels || [];
   S.smartFilters = record.smartFilters || [];
   S._revision = record._revision || 0;
-
-  // Legacy-shape migration: old tool may have used different field names
-  for (const t of S.tasks) {
-    if (!t.id) t.id = uid();
-    if (!t.name && t.title) t.name = t.title;
-    if (!t.name && t.task) t.name = t.task;
-    if (!t.name && t.text) t.name = t.text;
-    if (!t.name) t.name = 'Untitled task';
-    if (!t.campaignId && t.campaign) t.campaignId = t.campaign;
-    if (!t.categoryId && t.category) t.categoryId = t.category;
-    if (!t.due && t.dueDate) t.due = t.dueDate;
-    if (!t.due && t.deadline) t.due = t.deadline;
-    if (!t.assignees) {
-      if (Array.isArray(t.assignee)) t.assignees = t.assignee;
-      else if (t.assignee) t.assignees = [t.assignee];
-      else if (Array.isArray(t.owners)) t.assignees = t.owners;
-      else if (Array.isArray(t.who)) t.assignees = t.who;
-      else t.assignees = [];
-    }
-    if (!t.status) {
-      if (t.completed === true || t.done === true) t.status = 'done';
-      else if (t.state) t.status = t.state;
-      else t.status = 'not_started';
-    }
-    if (!t.subtasks) t.subtasks = [];
-    if (!t.notes) t.notes = t.description || t.details || '';
-    if (!t.labels) t.labels = [];
-    if (!t.priority) t.priority = '';
-    if (!t.comments) t.comments = [];
-  }
-  for (const c of S.campaigns) {
-    if (!c.status) c.status = 'planned';
-    if (!c.color) c.color = '#3B82F6';
-    if (!c.startDate && c.start) c.startDate = c.start;
-    if (!c.endDate && c.end) c.endDate = c.end;
-  }
 }
 
 function serializeState() {
@@ -368,6 +590,8 @@ function go(view, ctx={}) {
 
 // --- STARTUP ------------------------------------------------------
 function startApp() {
+  ensureCurrentUserInTeam();
+  $('#auth-screen').style.display = 'none';
   $('#setup-screen').style.display = 'none';
   $('#app').classList.add('active');
   $('#quick-fab').classList.remove('hidden');
@@ -398,10 +622,11 @@ function render() {
 }
 
 function updateUserBadge() {
-  const me = S.team[0];
+  const me = S.currentUser || S.team[0];
   if (me) {
     $('#user-avatar').textContent = initials(me.name);
     $('#user-name').textContent = me.name;
+    if (me.color) $('#user-avatar').style.background = me.color;
   }
 }
 
@@ -1509,6 +1734,7 @@ function signOut() {
   if (!confirm('Forget this workspace on this device?')) return;
   localStorage.removeItem(LS.KEYS);
   localStorage.removeItem(LS.BIN);
+  localStorage.removeItem(LS.USER);
   location.reload();
 }
 
@@ -1516,19 +1742,42 @@ function signOut() {
 //                    BOOTSTRAP
 // ============================================================
 window.addEventListener('DOMContentLoaded', () => {
-  // Set setup logo from inline base64
+  // Set logos from inline base64
   const setupImg = document.getElementById('setup-logo-img');
   if (setupImg && window.LOGO_NAVY) setupImg.src = window.LOGO_NAVY;
+  const authImg = document.getElementById('auth-logo-img');
+  if (authImg && window.LOGO_NAVY) authImg.src = window.LOGO_NAVY;
 
+  // apply theme early (works on gate screens too)
+  const savedTheme = localStorage.getItem(LS.THEME);
+  if (savedTheme === 'dark') { S.dark = true; document.documentElement.classList.add('dark'); }
+
+  // Restore current user (auth gate)
+  const savedUserRaw = localStorage.getItem(LS.USER);
+  let savedUser = null;
+  if (savedUserRaw) {
+    try { savedUser = JSON.parse(savedUserRaw); } catch(e) {}
+  }
+  if (savedUser && savedUser.email && savedUser.email.endsWith('@' + ALLOWED_DOMAIN)) {
+    S.currentUser = savedUser;
+  } else {
+    // no valid user → show gate, stop here
+    showAuthGate();
+    // still wire Enter handler on auth input
+    $('#auth-email').addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(); });
+    // and wire Enter on sc-key for when they continue
+    $('#sc-key').addEventListener('keydown', e => { if (e.key === 'Enter') doSetup(); });
+    return;
+  }
+
+  // ---- user is authed; continue to workspace setup / auto-login ----
   // auto-login if key + bin saved
   const savedKey = localStorage.getItem(LS.KEYS);
   const urlBin = new URLSearchParams(location.search).get('bin');
   const savedBin = localStorage.getItem(LS.BIN);
   const bin = urlBin || savedBin;
 
-  // pre-fill + apply theme to setup screen
-  const savedTheme = localStorage.getItem(LS.THEME);
-  if (savedTheme === 'dark') { S.dark = true; document.documentElement.classList.add('dark'); }
+  showSetupScreen();
 
   if (savedKey && bin) {
     $('#sc-key').value = savedKey;
@@ -1552,8 +1801,9 @@ window.addEventListener('DOMContentLoaded', () => {
     })();
   }
 
-  // handle Enter in setup
+  // handle Enter in setup + auth
   $('#sc-key').addEventListener('keydown', e => { if (e.key === 'Enter') doSetup(); });
+  $('#auth-email').addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(); });
 
   // QA modal Enter
   document.addEventListener('keydown', e => {
@@ -1566,7 +1816,7 @@ window.addEventListener('DOMContentLoaded', () => {
 
 // expose for inline handlers
 Object.assign(window, {
-  doSetup, toggleSidebar, toggleTheme, manualRefresh, showShareURL,
+  doSetup, doAuth, signOutAuth, toggleSidebar, toggleTheme, manualRefresh, showShareURL,
   go, toggleTask, toggleExpand, toggleCampExpand, updateTaskField,
   toggleAssignee, toggleLabel, addSubtask, toggleSubtask, renameSubtask, deleteSubtask,
   addComment, deleteTask,

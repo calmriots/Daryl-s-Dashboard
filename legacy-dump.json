@@ -1,0 +1,1712 @@
+{
+  "team": [
+    "Daryl",
+    "Philicia",
+    "Zul",
+    "Keisha",
+    "Shaughn",
+    "Jay",
+    "Ilriana",
+    "GR",
+    "Content Team",
+    "Sales",
+    "1-Host",
+    "External Partner",
+    "Ken",
+    "Charm",
+    "Nash",
+    "Deana",
+    "Chef John",
+    "Chef Jit Seng",
+    "Chef C.K",
+    "Chef Felix",
+    "Chef Tom",
+    "Imms",
+    "Digital Team (Jack)",
+    "Chris Millar",
+    "Eileen",
+    "Fletcher",
+    "Purchasing",
+    "Finance",
+    "Zhairy",
+    "Leona",
+    "Chef Lamley",
+    {
+      "id": "x1k1b6xijp0k",
+      "name": "Daryl Xie",
+      "role": "Assistant Marketing Manager",
+      "color": "#be0f26"
+    }
+  ],
+  "categories": [
+    {
+      "id": "development",
+      "label": "Development"
+    },
+    {
+      "id": "group-dining",
+      "label": "Group Dining"
+    },
+    {
+      "id": "pr-kol",
+      "label": "PR / KOL"
+    },
+    {
+      "id": "tourism",
+      "label": "Tourism"
+    }
+  ],
+  "campaigns": [
+    {
+      "id": "c2q2xkk",
+      "name": "Arden Late Night Extension",
+      "cats": [
+        "development"
+      ],
+      "venues": [
+        "All Venues",
+        "Arden Bar"
+      ],
+      "venue": "All Venues",
+      "status": "planned",
+      "start": "2026-04-27",
+      "end": "2026-05-04",
+      "launchDate": "2026-04-27",
+      "launchTBC": false,
+      "desc": "Fri & Sat Operation hours to be changed to end at 1am. Update on website and google.",
+      "color": "#c8131a",
+      "image": null,
+      "links": [],
+      "comments": [],
+      "archived": false,
+      "results": {
+        "covers": "",
+        "promo": "",
+        "alac": "",
+        "notes": "",
+        "past": []
+      },
+      "tasks": [
+        {
+          "id": "t36i8eo",
+          "name": "Edit Website",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-27",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "tg2p7q2",
+          "name": "Update Operation Hours On Google",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-27",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "t2mtc8z",
+          "name": "Update SevenRooms",
+          "status": "not-started",
+          "who": [
+            "GR"
+          ],
+          "due": "2026-04-27",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        }
+      ],
+      "startDate": "2026-04-27",
+      "endDate": "2026-06-30",
+      "description": "Build up the weekend night business aspects for Arden, now with Moving Headlights, new parasols, and speakers for parties. With extended weekend hours and late night supper options"
+    },
+    {
+      "id": "mday",
+      "name": "Mother's Day: Steeped in Love",
+      "cat": "campaigns",
+      "venue": "Arden Bar",
+      "status": "active",
+      "start": "2026-04-20",
+      "end": "2026-05-11",
+      "desc": "Multi-venue Mother's Day activation. GEO FAQ components, social copy, and group dining reservation push.",
+      "color": "#993556",
+      "tasks": [
+        {
+          "id": "m1",
+          "name": "GEO FAQ HTML — all venues",
+          "status": "done",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-20",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "m2",
+          "name": "Social copy suite — all venues",
+          "status": "done",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-18",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "m5",
+          "name": "Set menu design brief to Zul",
+          "status": "done",
+          "who": [
+            "Daryl",
+            "Zul"
+          ],
+          "due": "2026-04-15",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "m6",
+          "name": "Design proofread",
+          "status": "done",
+          "who": [
+            "Keisha"
+          ],
+          "due": "2026-04-22",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        }
+      ],
+      "results": {
+        "covers": "",
+        "promo": "",
+        "alac": "",
+        "notes": "",
+        "past": []
+      },
+      "cats": [
+        "campaigns"
+      ],
+      "archived": false,
+      "links": [],
+      "comments": [],
+      "venues": [
+        "Arden Bar"
+      ],
+      "image": null,
+      "launchDate": "",
+      "launchTBC": false,
+      "startDate": "2026-04-20",
+      "endDate": "2026-05-11"
+    },
+    {
+      "id": "cnlvix7",
+      "name": "Sol & Luna Re-Development",
+      "cats": [
+        "campaigns",
+        "development"
+      ],
+      "venue": "Sol and Luna",
+      "status": "active",
+      "start": "2026-03-01",
+      "end": "2026-12-31",
+      "desc": "Development Tracker for Sol & Luna",
+      "links": [],
+      "comments": [],
+      "color": "#ff7b00",
+      "results": {
+        "covers": "",
+        "promo": "",
+        "alac": "",
+        "notes": "",
+        "past": []
+      },
+      "tasks": [
+        {
+          "id": "t7chqkv",
+          "name": "Ideas Brainstorm",
+          "status": "in-progress",
+          "who": [
+            "Daryl",
+            "Leona",
+            "Zhairy",
+            "Fletcher",
+            "Chef John",
+            "Shaughn"
+          ],
+          "due": "2026-04-18",
+          "comments": [
+            {
+              "id": "wzpf1j",
+              "name": "Daryl",
+              "text": "OBJECTIVE: Improve branding Improve Spending Improve Kitchen Efficiency",
+              "date": "16 Apr",
+              "editedDate": null
+            }
+          ],
+          "cats": [
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "1 Appetizer + 1 dessert",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "tpjbfyd",
+          "name": "Valencia Set - MRF",
+          "status": "in-progress",
+          "who": [
+            "Daryl",
+            "Philicia",
+            "Chef John"
+          ],
+          "due": "2026-04-21",
+          "comments": [],
+          "cats": [
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "Drinks to consider: \nAigua de València -\nValencian Water is a cocktail made from a base of cava or champagne, orange juice, vodka and gin. In general, it is served in pitchers of various sizes and is consumed from a broad cocktail glass. It was made for the first time in 1959 by Constante Gil in the bar Café Madrid de Valencia in the city of Valencia, Spain.\n\nLook into Seville (Tapas bars)",
+          "taskStart": "",
+          "links": [
+            {
+              "label": "MRF",
+              "url": "https://docs.google.com/spreadsheets/d/1CnfhV3LjlTq_LvQQ-2ptGx2FLZSgLQD1vy36APGPjsY/edit?gid=1797688089#gid=1797688089"
+            }
+          ]
+        },
+        {
+          "id": "tgcavrr",
+          "name": "A.I pricing analysis",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-21",
+          "comments": [],
+          "cats": [
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "Set lunch is $43 & $48 currently\nPrice or timing sensitivity (Majority choose the 2 course)\n",
+          "taskStart": "2026-04-20",
+          "links": []
+        },
+        {
+          "id": "t85paec",
+          "name": "Pet Friendly Partners",
+          "status": "in-progress",
+          "who": [
+            "Shaughn",
+            "Daryl"
+          ],
+          "due": "2026-04-22",
+          "comments": [
+            {
+              "id": "dxt0vg",
+              "name": "Shaughn",
+              "text": "to reach out to Kay and get partner & vendor contacts",
+              "date": "16 Apr",
+              "editedDate": null
+            }
+          ],
+          "cats": [
+            "campaigns",
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "txy9qia",
+          "name": "Menu must indicate 1 set per person (No sharing of set menus)",
+          "status": "not-started",
+          "who": [
+            "Philicia"
+          ],
+          "due": "2026-04-27",
+          "comments": [],
+          "cats": [
+            "campaigns",
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "Lunch Set",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "tfnoj54",
+          "name": "Black Speakers for ORA being repaired - Column speakers will be brought down to level 17 after that",
+          "status": "in-progress",
+          "who": [
+            "Fletcher"
+          ],
+          "due": "2026-04-30",
+          "comments": [],
+          "cats": [
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "tfasy1p",
+          "name": "Tables Loose when moving around - Payment withheld till fixed",
+          "status": "blocked",
+          "who": [
+            "Fletcher"
+          ],
+          "due": "2026-04-30",
+          "comments": [],
+          "cats": [
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "tbmrza0",
+          "name": "Launch Entrecote",
+          "status": "not-started",
+          "who": [
+            "Chef John",
+            "Chef Felix",
+            "Chris Millar",
+            "Daryl",
+            "Philicia"
+          ],
+          "due": "2026-05-04",
+          "comments": [],
+          "cats": [
+            "campaigns",
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "t9wpgnu",
+          "name": "Possible new products",
+          "status": "in-progress",
+          "who": [
+            "Daryl",
+            "Shaughn",
+            "Chef John",
+            "Leona",
+            "Zhairy",
+            "Fletcher"
+          ],
+          "due": "2026-05-31",
+          "comments": [
+            {
+              "id": "y5xh9s",
+              "name": "Daryl",
+              "text": "https://chijmes.com.sg/happenings/weekly-indulgence-at-the-winery-tapas-bar/",
+              "date": "16 Apr",
+              "editedDate": null
+            },
+            {
+              "id": "48jp8z",
+              "name": "Daryl",
+              "text": "Introduce a possible tapas set - Choose x amount of items for $y (includes the valencian items)",
+              "date": "16 Apr",
+              "editedDate": null
+            },
+            {
+              "id": "n8r7m8",
+              "name": "Daryl",
+              "text": "Tapas Trolley - Batches of tapas, small portioned at special pricing (1 per table max) to upsell full size dishes",
+              "date": "16 Apr",
+              "editedDate": null
+            }
+          ],
+          "cats": [
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "Products to improve S&L Business",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "t9ol4v0",
+          "name": "Launch Valencia Tapas - Mid June",
+          "status": "not-started",
+          "who": [
+            "Daryl",
+            "Leona",
+            "Zhairy",
+            "Chef John",
+            "Chef Tom",
+            "Chef Felix"
+          ],
+          "due": "2026-06-15",
+          "comments": [],
+          "cats": [
+            "campaigns",
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "txz1xkk",
+          "name": "Desserts - Mid July",
+          "status": "not-started",
+          "who": [
+            "Daryl",
+            "Chef Felix",
+            "Chef John",
+            "Chris Millar",
+            "Leona",
+            "Shaughn"
+          ],
+          "due": "2026-07-13",
+          "comments": [],
+          "cats": [
+            "campaigns",
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "tqnn015",
+          "name": "Lamps for ORA - SASA to purchase",
+          "status": "in-progress",
+          "who": [
+            "Purchasing",
+            "Zhairy",
+            "Shaughn"
+          ],
+          "due": "",
+          "comments": [],
+          "cats": [
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "Zhairy sent email to shaughn for approval after which sasa will purchase",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "te8z2vj",
+          "name": "Pet Friendly Weekends Campaign",
+          "status": "not-started",
+          "who": [
+            "Daryl",
+            "Philicia"
+          ],
+          "due": "2026-04-18",
+          "comments": [],
+          "cats": [
+            "campaigns",
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "Things to do for pet friendly weekend",
+          "taskStart": "",
+          "links": []
+        }
+      ],
+      "archived": false,
+      "venues": [
+        "Sol and Luna"
+      ],
+      "image": null,
+      "launchDate": "",
+      "launchTBC": false,
+      "startDate": "2026-03-01",
+      "endDate": "2026-12-31"
+    },
+    {
+      "id": "val",
+      "name": "The Valencia Set",
+      "cat": "campaigns",
+      "venue": "Sol and Luna",
+      "status": "planned",
+      "start": "2026-04-15",
+      "end": "2026-06-01",
+      "desc": "Sol and Luna soft launch built around the ORA Valencia concept.",
+      "color": "#854F0B",
+      "tasks": [
+        {
+          "id": "v1",
+          "name": "Campaign deck final review",
+          "status": "in-progress",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-18",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "v2",
+          "name": "ORA Valencia menu copy",
+          "status": "done",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-15",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "v3",
+          "name": "Hero photo shoot — Valencia Set",
+          "status": "not-started",
+          "who": [
+            "Daryl",
+            "Zul"
+          ],
+          "due": "2026-04-28",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "v4",
+          "name": "Social content calendar (May)",
+          "status": "not-started",
+          "who": [
+            "Philicia"
+          ],
+          "due": "2026-04-25",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "v5",
+          "name": "KOL invites — soft launch",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-05-01",
+          "comments": [],
+          "cat": "pr-kol",
+          "blk": "",
+          "cats": [
+            "pr-kol"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "tosidwy",
+          "name": "Menu research (1 appetiser & 1 Dessert per person)",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-18",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        }
+      ],
+      "results": {
+        "covers": "",
+        "promo": "",
+        "alac": "",
+        "notes": "",
+        "past": []
+      },
+      "cats": [
+        "campaigns"
+      ],
+      "archived": false,
+      "links": [],
+      "comments": [],
+      "venues": [
+        "Sol and Luna"
+      ],
+      "image": null,
+      "launchDate": "",
+      "launchTBC": false,
+      "startDate": "2026-04-15",
+      "endDate": "2026-06-01"
+    },
+    {
+      "id": "fday",
+      "name": "Father's Day Campaign",
+      "cat": "campaigns",
+      "venue": "All Venues",
+      "status": "planned",
+      "start": "2026-05-15",
+      "end": "2026-06-22",
+      "desc": "Philicia's capstone campaign covering Father's Day, GPSS wrap-up, and Let's Go Local activations.",
+      "color": "#3B6D11",
+      "tasks": [
+        {
+          "id": "f1",
+          "name": "Campaign brief (Philicia lead)",
+          "status": "done",
+          "who": [
+            "Philicia",
+            "Daryl"
+          ],
+          "due": "2026-05-10",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "f2",
+          "name": "Set menu concept and copy",
+          "status": "not-started",
+          "who": [
+            "Philicia"
+          ],
+          "due": "2026-05-20",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "f3",
+          "name": "Social content calendar",
+          "status": "not-started",
+          "who": [
+            "Philicia"
+          ],
+          "due": "2026-05-25",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "f4",
+          "name": "Design brief to Zul",
+          "status": "not-started",
+          "who": [
+            "Philicia",
+            "Zul"
+          ],
+          "due": "2026-05-28",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "twbu6eq",
+          "name": "Send MRF",
+          "status": "done",
+          "who": [
+            "Daryl",
+            "Philicia"
+          ],
+          "due": "2026-04-23",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        }
+      ],
+      "results": {
+        "covers": "",
+        "promo": "",
+        "alac": "",
+        "notes": "",
+        "past": []
+      },
+      "cats": [
+        "campaigns"
+      ],
+      "archived": false,
+      "links": [],
+      "comments": [],
+      "venues": [
+        "All Venues"
+      ],
+      "image": null,
+      "launchDate": "2026-06-21",
+      "launchTBC": false,
+      "startDate": "2026-05-15",
+      "endDate": "2026-06-22"
+    },
+    {
+      "id": "gpss",
+      "name": "GPSS: Pole Position",
+      "cat": "campaigns",
+      "venue": "All Venues",
+      "status": "planned",
+      "start": "2026-05-01",
+      "end": "2026-06-15",
+      "desc": "F1 circuit-to-venue umbrella campaign across all 13 1-Group restaurants. Starting Grid visual as PR hook.",
+      "color": "#185FA5",
+      "tasks": [
+        {
+          "id": "g1",
+          "name": "Finalise circuit-venue pairings",
+          "status": "done",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-10",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "g2",
+          "name": "GPSS PPTX deck — 1-Arden enclave",
+          "status": "done",
+          "who": [
+            "Daryl",
+            "Zul"
+          ],
+          "due": "2026-04-10",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "tw27sw7",
+          "name": "STB Submission",
+          "status": "done",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-10",
+          "comments": [],
+          "cats": [
+            "campaigns",
+            "tourism"
+          ],
+          "blk": "",
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "g4",
+          "name": "Social copy suite — all venues",
+          "status": "not-started",
+          "who": [
+            "Daryl",
+            "Philicia"
+          ],
+          "due": "2026-04-30",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "For website & SevenRooms",
+          "taskStart": ""
+        },
+        {
+          "id": "t2igj51",
+          "name": "Send MRF",
+          "status": "not-started",
+          "who": [
+            "Philicia",
+            "Daryl"
+          ],
+          "due": "2026-04-24",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "g5",
+          "name": "KOL briefing and outreach",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-06-30",
+          "comments": [],
+          "cat": "pr-kol",
+          "blk": "",
+          "cats": [
+            "pr-kol"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "g6",
+          "name": "GEO FAQ content build",
+          "status": "not-started",
+          "who": [
+            "Philicia"
+          ],
+          "due": "2026-06-30",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "g7",
+          "name": "Press release — Pole Position",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-06-30",
+          "comments": [],
+          "cat": "pr-kol",
+          "blk": "",
+          "cats": [
+            "pr-kol"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        }
+      ],
+      "results": {
+        "covers": "",
+        "promo": "",
+        "alac": "",
+        "notes": "",
+        "past": []
+      },
+      "cats": [
+        "campaigns",
+        "group-dining"
+      ],
+      "archived": false,
+      "links": [],
+      "comments": [
+        {
+          "id": "prtvdy",
+          "name": "Daryl",
+          "text": "Currently pending STB approval as anchor campaign for GPSS",
+          "date": "16 Apr",
+          "editedDate": "16 Apr"
+        }
+      ],
+      "venues": [
+        "All Venues"
+      ],
+      "image": null,
+      "launchDate": "",
+      "launchTBC": false,
+      "startDate": "2026-05-01",
+      "endDate": "2026-06-15"
+    },
+    {
+      "id": "tai",
+      "name": "Oumi Nose-to-Tail (Tai) Shoot",
+      "cat": "campaigns",
+      "venue": "Oumi",
+      "status": "planned",
+      "start": "2026-04-10",
+      "end": "2026-04-30",
+      "desc": "Content shoot for Oumi's Nose-to-Tail menu with Chef Lamley.",
+      "color": "#0F6E56",
+      "tasks": [
+        {
+          "id": "o1",
+          "name": "Production brief finalised",
+          "status": "done",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-12",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "o2",
+          "name": "Run sheet compressed",
+          "status": "done",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-04-12",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "o3",
+          "name": "Shoot day execution",
+          "status": "done",
+          "who": [
+            "Daryl",
+            "Philicia",
+            "Content Team"
+          ],
+          "due": "2026-04-14",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "o5",
+          "name": "Nose-to-Tail menu copy",
+          "status": "in-progress",
+          "who": [
+            "Daryl",
+            "Philicia"
+          ],
+          "due": "2026-04-25",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "o4",
+          "name": "Post-production and selects",
+          "status": "not-started",
+          "who": [
+            "Zul"
+          ],
+          "due": "2026-04-28",
+          "comments": [],
+          "cat": "campaigns",
+          "blk": "",
+          "cats": [
+            "campaigns"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "t59rrv4",
+          "name": "Website",
+          "status": "blocked",
+          "who": [
+            "Philicia",
+            "Daryl"
+          ],
+          "due": "2026-04-23",
+          "comments": [
+            {
+              "id": "2h7ewd",
+              "name": "Daryl",
+              "text": "Pending Sevenrooms link creation (need to send info to GR)",
+              "date": "21 Apr",
+              "editedDate": null
+            }
+          ],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "tgcza6b",
+          "name": "7rooms Upgrades",
+          "status": "in-progress",
+          "who": [
+            "Daryl",
+            "Philicia",
+            "GR",
+            "Ilriana"
+          ],
+          "due": "2026-04-23",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        }
+      ],
+      "results": {
+        "covers": "",
+        "promo": "",
+        "alac": "",
+        "notes": "",
+        "past": []
+      },
+      "cats": [
+        "campaigns",
+        "development",
+        "pr-kol"
+      ],
+      "archived": false,
+      "links": [],
+      "comments": [],
+      "venues": [
+        "Oumi"
+      ],
+      "image": null,
+      "launchDate": "",
+      "launchTBC": false,
+      "startDate": "2026-04-10",
+      "endDate": "2026-04-30"
+    },
+    {
+      "id": "tat",
+      "name": "Tatler Best Singapore 2026",
+      "cat": "pr-kol",
+      "venue": "Oumi",
+      "status": "active",
+      "start": "2026-03-01",
+      "end": "2026-09-30",
+      "desc": "Strategy to secure Oumi a Top 20 position in the Tatler Best Singapore 2026 editorial cycle.",
+      "color": "#534AB7",
+      "tasks": [
+        {
+          "id": "ta1",
+          "name": "Editorial strategy document",
+          "status": "done",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-03-30",
+          "comments": [],
+          "cat": "pr-kol",
+          "blk": "",
+          "cats": [
+            "pr-kol"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "ta2",
+          "name": "Tatler editor outreach",
+          "status": "in-progress",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-05-01",
+          "comments": [],
+          "cat": "pr-kol",
+          "blk": "",
+          "cats": [
+            "pr-kol"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "ta3",
+          "name": "Critic and journalist invite programme",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "2026-05-15",
+          "comments": [],
+          "cat": "pr-kol",
+          "blk": "",
+          "cats": [
+            "pr-kol"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        },
+        {
+          "id": "ta4",
+          "name": "Coverage milestone tracking",
+          "status": "not-started",
+          "who": [
+            "Philicia"
+          ],
+          "due": "2026-06-01",
+          "comments": [],
+          "cat": "pr-kol",
+          "blk": "",
+          "cats": [
+            "pr-kol"
+          ],
+          "archived": false,
+          "links": [],
+          "desc": "",
+          "taskStart": ""
+        }
+      ],
+      "results": {
+        "covers": "25",
+        "promo": "5",
+        "alac": "",
+        "notes": "",
+        "past": [
+          {
+            "label": "2025",
+            "covers": "30",
+            "promo": "3",
+            "rev": "800"
+          }
+        ],
+        "rev": "1250"
+      },
+      "cats": [
+        "pr-kol"
+      ],
+      "archived": true,
+      "links": [],
+      "comments": [],
+      "venues": [
+        "Oumi"
+      ],
+      "image": null,
+      "launchDate": "",
+      "launchTBC": false,
+      "startDate": "2026-03-01",
+      "endDate": "2026-09-30"
+    },
+    {
+      "id": "cflh80m",
+      "name": "New High Tea",
+      "cats": [
+        "campaigns",
+        "development"
+      ],
+      "venues": [
+        "Arden Bar",
+        "Kaarla"
+      ],
+      "venue": "Arden Bar",
+      "status": "planned",
+      "start": "2026-07-01",
+      "end": "2026-09-30",
+      "launchDate": "2026-06-01",
+      "launchTBC": false,
+      "desc": "New High Tea\nIncreased pricing to $98++ with more offerings including Wellness Tea",
+      "color": "#C8131A",
+      "image": null,
+      "links": [],
+      "comments": [],
+      "archived": false,
+      "results": {
+        "covers": "",
+        "promo": "",
+        "alac": "",
+        "notes": "",
+        "past": []
+      },
+      "tasks": [
+        {
+          "id": "tapwpol",
+          "name": "Send MRF",
+          "status": "not-started",
+          "who": [
+            "Daryl",
+            "Philicia"
+          ],
+          "due": "2026-05-01",
+          "comments": [],
+          "cats": [
+            "campaigns",
+            "development"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        }
+      ],
+      "startDate": "2026-07-01",
+      "endDate": "2026-09-30"
+    },
+    {
+      "id": "cpgo3i3",
+      "name": "Flavours of Singapore",
+      "cats": [
+        "campaigns",
+        "group-dining"
+      ],
+      "venues": [
+        "All Venues"
+      ],
+      "venue": "All Venues",
+      "status": "planned",
+      "start": "2026-07-01",
+      "end": "2026-08-09",
+      "launchDate": "",
+      "launchTBC": true,
+      "desc": "Flavours of Singapore as part of 1-Group's Let's go local, can be a set menu or a exclusive dish (Such as Lost flavours integrated into the BU's cuisine (Example: Sol & Luna can do a Roti Jalal wrapped Beef Cheek) ",
+      "color": "#C8131A",
+      "image": null,
+      "links": [],
+      "comments": [],
+      "archived": false,
+      "results": {
+        "covers": "",
+        "promo": "",
+        "alac": "",
+        "notes": "",
+        "past": []
+      },
+      "tasks": [
+        {
+          "id": "tn2do8h",
+          "name": "Campaign Proposal",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "t8v3uic",
+          "name": "Mechanics Confirmed with Team",
+          "status": "not-started",
+          "who": [
+            "Daryl",
+            "Chris Millar",
+            "Leona",
+            "Fletcher",
+            "Chef Jit Seng",
+            "Chef John",
+            "Keisha",
+            "Shaughn"
+          ],
+          "due": "",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "tnb6g8t",
+          "name": "Send MRF",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "to23wct",
+          "name": "Shoot planned",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "t1nt6tz",
+          "name": "Shoot Completed",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "tw3w9b4",
+          "name": "Design Brief Sent",
+          "status": "not-started",
+          "who": [
+            "Daryl",
+            "Content Team"
+          ],
+          "due": "",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "tmxja53",
+          "name": "Received KV and Assets",
+          "status": "not-started",
+          "who": [
+            "Content Team"
+          ],
+          "due": "",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "tsfjwie",
+          "name": "Website & Sevenrooms Copy",
+          "status": "not-started",
+          "who": [
+            "Daryl",
+            "GR"
+          ],
+          "due": "",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "tub4b1c",
+          "name": "Website & Sevenrooms Live",
+          "status": "not-started",
+          "who": [
+            "Daryl",
+            "GR"
+          ],
+          "due": "",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        },
+        {
+          "id": "t8hhd5a",
+          "name": "Ads Live",
+          "status": "not-started",
+          "who": [
+            "Daryl"
+          ],
+          "due": "",
+          "comments": [],
+          "cats": [
+            "campaigns"
+          ],
+          "blk": "",
+          "archived": false,
+          "desc": "",
+          "taskStart": "",
+          "links": []
+        }
+      ],
+      "startDate": "2026-07-01",
+      "endDate": "2026-08-09"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "oow4jcgiigbo",
+      "name": "Update Operation Hours",
+      "campaignId": "c2q2xkk",
+      "due": "2026-04-27",
+      "priority": "med",
+      "assignees": [],
+      "status": "not_started",
+      "notes": "",
+      "labels": [],
+      "subtasks": [],
+      "comments": [],
+      "createdAt": "2026-04-22T03:19:56.196Z"
+    }
+  ],
+  "requests": [
+    {
+      "id": "rgz4aya",
+      "name": "Test task",
+      "details": "Test details",
+      "cid": "",
+      "who": [
+        "Philicia"
+      ],
+      "due": "2026-04-22",
+      "by": "Daryl",
+      "status": "rejected",
+      "rejComment": "Test decline",
+      "date": "21 Apr"
+    },
+    {
+      "id": "ra32u06",
+      "name": "Test request 2",
+      "details": "Test details",
+      "cid": "",
+      "who": [
+        "Philicia"
+      ],
+      "due": "",
+      "by": "Daryl",
+      "status": "accepted",
+      "rejComment": "",
+      "date": "21 Apr"
+    }
+  ],
+  "labels": [],
+  "smartFilters": [],
+  "_revision": 26
+}
