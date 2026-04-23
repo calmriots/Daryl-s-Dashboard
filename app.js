@@ -954,6 +954,9 @@ function taskExpandedHTML(t) {
 
   return `
     <div class="task-exp">
+      <div class="exp-label">Task name</div>
+      <input class="field" value="${escape(t.name)}" style="font-weight:600;font-size:14px;margin-bottom:14px"
+        onchange="if(this.value.trim())updateTaskField('${t.id}','name',this.value.trim())">
       <div class="exp-grid">
         <div>
           <div class="exp-label">Status</div>
@@ -1006,7 +1009,7 @@ function taskExpandedHTML(t) {
 
       ${comments ? `<div class="exp-label" style="margin-top:14px">Comments</div>${comments}` : ''}
       <div style="display:flex;gap:8px;margin-top:14px;align-items:center">
-        <input class="field" id="cmt-${t.id}" placeholder="Add a comment…" style="flex:1" onkeydown="if(event.key==='Enter')addComment('${t.id}',this.value),this.value=''">
+        <input class="field rw-ok" id="cmt-${t.id}" placeholder="Add a comment…" style="flex:1" onkeydown="if(event.key==='Enter')addComment('${t.id}',this.value),this.value=''">
         <button class="btn danger sm" onclick="deleteTask('${t.id}')">Delete</button>
       </div>
     </div>
@@ -1017,7 +1020,7 @@ function taskExpandedHTML(t) {
 //                    VIEW RENDERERS
 // ============================================================
 function renderToday() {
-  const me = S.team[0]?.name || 'there';
+  const me = (S.currentUser && S.currentUser.name) || S.team[0]?.name || 'there';
   const today = new Date();
   const dateStr = today.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' });
 
@@ -1129,7 +1132,7 @@ function renderRequests() {
         <h1 class="display">Requests</h1>
         <div class="pg-sub">Work others are requesting from the marketing team</div>
       </div>
-      <div class="pg-actions"><button class="btn primary" onclick="openNewRequest()">+ New request</button></div>
+      <div class="pg-actions rw-ok"><button class="btn primary rw-ok" onclick="openNewRequest()">+ New request</button></div>
     </div>
 
     <div class="metrics" style="margin-bottom:1.5rem">
@@ -1156,6 +1159,12 @@ function requestCardHTML(r) {
         <span class="badge ${status}">${status}</span>
       </div>
       ${r.description?`<div style="font-size:13px;color:var(--ink-2);margin:8px 0">${escape(r.description)}</div>`:''}
+      ${status==='rejected' && r.declineReason ? `
+        <div style="margin:10px 0;padding:10px 12px;background:var(--danger-bg);border-left:3px solid var(--danger);border-radius:var(--r-sm);font-size:12px">
+          <div style="font-weight:700;color:var(--danger);margin-bottom:3px;letter-spacing:0.02em">DECLINED${r.declinedBy?' · '+escape(r.declinedBy):''}${r.declinedAt?' · '+escape(r.declinedAt):''}</div>
+          <div style="color:var(--ink-2);line-height:1.45">${escape(r.declineReason)}</div>
+        </div>
+      ` : ''}
       <div class="row" style="margin-top:10px;font-size:12px;color:var(--muted)">
         ${r.due?`<span>📅 ${fmtDate(r.due)}</span>`:''}
         ${r.priority?`<span class="chip" style="text-transform:capitalize">${r.priority} priority</span>`:''}
@@ -1533,11 +1542,10 @@ function deleteSubtask(tid, sid) {
 }
 
 function addComment(tid, text) {
-  if (!requireEdit()) return;
   if (!text.trim()) return;
   const t = S.tasks.find(x=>x.id===tid); if (!t) return;
   t.comments = t.comments || [];
-  t.comments.push({ id: uid(), author: S.team[0]?.name || 'Someone', text, at: new Date().toLocaleDateString() });
+  t.comments.push({ id: uid(), author: (S.currentUser && S.currentUser.name) || S.team[0]?.name || 'Someone', text, at: new Date().toLocaleDateString() });
   scheduleSync(); render();
 }
 
@@ -1720,8 +1728,20 @@ function acceptRequest(id) {
 function rejectRequest(id) {
   if (!requireEdit()) return;
   const r = S.requests.find(x=>x.id===id); if (!r) return;
-  r.status = 'rejected';
-  scheduleSync(); render();
+  makeModal('Decline request', `
+    <div style="font-size:13px;color:var(--muted);margin-bottom:12px">Declining <strong style="color:var(--ink)">${escape(r.title)}</strong>. Add a reason so the requester knows why.</div>
+    <div class="exp-label">Reason for declining</div>
+    <textarea id="rj-reason" class="field" rows="3" placeholder="e.g. Out of scope for this quarter — please resubmit for Q3."></textarea>
+    <div style="font-size:11px;color:var(--muted);margin-top:6px">Optional, but strongly recommended. The reason will be shown on the request card.</div>
+  `, () => {
+    r.status = 'rejected';
+    r.declineReason = (($('#rj-reason')||{}).value || '').trim();
+    r.declinedAt = new Date().toLocaleDateString();
+    r.declinedBy = (S.currentUser && S.currentUser.name) || '';
+    scheduleSync(); render();
+    toast('Request declined','info');
+  });
+  setTimeout(() => { const el = $('#rj-reason'); if (el) el.focus(); }, 50);
 }
 function deleteRequest(id) {
   if (!requireEdit()) return;

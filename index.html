@@ -951,16 +951,17 @@ html.dark .role-badge.admin { color: var(--navy-300); }
 .role-badge.member { background: var(--surface-2); color: var(--muted); }
 
 /* Readonly mode — hide every edit affordance.
-   JS requireEdit() is the source of truth; this is visual only. */
+   JS requireEdit() is the source of truth; this is visual only.
+   Elements tagged .rw-ok remain interactive for members (comments, requests). */
 body.readonly-user .quick-add-fab,
 body.readonly-user .tb-action[onclick*="showShareURL"],
-body.readonly-user button.btn.primary,
-body.readonly-user button.btn.danger,
-body.readonly-user .pg-actions,
+body.readonly-user button.btn.primary:not(.rw-ok),
+body.readonly-user button.btn.danger:not(.rw-ok),
 body.readonly-user .camp-toggle,
 body.readonly-user .subtask-add,
 body.readonly-user .subtask-del,
-body.readonly-user button[onclick*="openNew"],
+body.readonly-user button[onclick*="openNewCampaign"],
+body.readonly-user button[onclick*="openNewSmartFilter"],
 body.readonly-user button[onclick*="openQuick"],
 body.readonly-user button[onclick*="edit"],
 body.readonly-user button[onclick*="delete"],
@@ -974,22 +975,33 @@ body.readonly-user button[onclick^="addLabel"],
 body.readonly-user button[onclick^="addCategory"],
 body.readonly-user button[onclick^="addAdmin"],
 body.readonly-user button[onclick^="addSubtask"],
-body.readonly-user button[onclick*="openNewRequest"],
 body.readonly-user .sb-section-title > button {
   display: none !important;
 }
 body.readonly-user .task-chk { pointer-events: none; opacity: 0.55; }
 body.readonly-user .who-chip { pointer-events: none; }
 body.readonly-user .who-chip:not(.sel) { opacity: 0.4; }
-body.readonly-user input.field, 
-body.readonly-user textarea.field, 
-body.readonly-user select.field {
+body.readonly-user input.field:not(.rw-ok),
+body.readonly-user textarea.field:not(.rw-ok),
+body.readonly-user select.field:not(.rw-ok) {
   pointer-events: none; opacity: 0.75; background: var(--surface-2);
 }
 body.readonly-user #tb-search { pointer-events: auto; opacity: 1; background: var(--surface-2); }
 body.readonly-user .drag-item input { pointer-events: none; }
-/* Re-enable comments so members can still leave comments (if intended) — DISABLED for now */
-body.readonly-user .readonly-show { display: inline-flex !important; }
+/* .rw-ok escape hatch — elements that stay interactive for members */
+body.readonly-user .rw-ok,
+body.readonly-user .rw-ok * {
+  pointer-events: auto !important;
+  opacity: 1 !important;
+}
+body.readonly-user button.rw-ok,
+body.readonly-user .rw-ok button {
+  display: inline-flex !important;
+}
+body.readonly-user input.rw-ok,
+body.readonly-user textarea.rw-ok {
+  background: var(--surface) !important;
+}
 
 /* Drag sort visual */
 .drag-item[draggable="true"] { cursor: grab; }
