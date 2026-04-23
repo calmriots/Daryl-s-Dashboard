@@ -1684,27 +1684,40 @@ function deleteCampaign(id) {
 function openNewRequest() {
   makeModal('New request', `
     <div class="exp-label">Title</div>
-    <input id="nr-title" class="field" placeholder="What do you need from marketing?" style="margin-bottom:10px">
+    <input id="nr-title" class="field rw-ok" placeholder="What do you need from marketing?" style="margin-bottom:10px">
     <div class="exp-grid">
-      <div><div class="exp-label">From</div><input id="nr-from" class="field" placeholder="Your name or team"></div>
-      <div><div class="exp-label">Due</div><input id="nr-due" type="date" class="field"></div>
-      <div><div class="exp-label">Priority</div><select id="nr-prio" class="field"><option value="">None</option><option>high</option><option>med</option><option>low</option></select></div>
+      <div><div class="exp-label">From</div><input id="nr-from" class="field rw-ok" placeholder="Your name or team"></div>
+      <div><div class="exp-label">Due</div><input id="nr-due" type="date" class="field rw-ok"></div>
+      <div><div class="exp-label">Priority</div><select id="nr-prio" class="field rw-ok"><option value="">None</option><option>high</option><option>med</option><option>low</option></select></div>
     </div>
     <div class="exp-label">Details</div>
-    <textarea id="nr-desc" class="field" rows="3"></textarea>
+    <textarea id="nr-desc" class="field rw-ok" rows="3"></textarea>
   `, () => {
     const title = $('#nr-title').value.trim();
     if (!title) { toast('Title required','error'); return false; }
     S.requests.push({
       id: uid(), title,
-      from: $('#nr-from').value, due: $('#nr-due').value,
+      from: ($('#nr-from').value || (S.currentUser && S.currentUser.name) || ''),
+      due: $('#nr-due').value,
       priority: $('#nr-prio').value, description: $('#nr-desc').value,
       status: 'pending',
-      createdAt: new Date().toLocaleDateString()
+      createdAt: new Date().toLocaleDateString(),
+      submittedByEmail: (S.currentUser && S.currentUser.email) || ''
     });
     scheduleSync(); render();
     toast('Request submitted','success');
-  });
+  }, { rwOk: true, saveLabel: 'Submit request' });
+
+  // Pre-fill "From" with the signed-in user's name so members don't
+  // have to type it every time. They can still edit it.
+  setTimeout(() => {
+    const fromInput = $('#nr-from');
+    if (fromInput && S.currentUser && !fromInput.value) {
+      fromInput.value = S.currentUser.name || '';
+    }
+    const titleInput = $('#nr-title');
+    if (titleInput) titleInput.focus();
+  }, 40);
 }
 
 function acceptRequest(id) {
@@ -1775,18 +1788,19 @@ function deleteSmartFilter(id) {
 }
 
 // ---- Modal ----
-function makeModal(title, bodyHTML, onSave) {
+function makeModal(title, bodyHTML, onSave, opts) {
+  opts = opts || {};
   closeAnyModal();
   const bd = document.createElement('div');
-  bd.className = 'modal-backdrop open';
+  bd.className = 'modal-backdrop open' + (opts.rwOk ? ' rw-ok' : '');
   bd.id = '_modal';
   bd.innerHTML = `
-    <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal${opts.rwOk ? ' rw-ok' : ''}" onclick="event.stopPropagation()">
       <h2 class="display">${escape(title)}</h2>
       <div>${bodyHTML}</div>
       <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:16px">
         <button class="btn" onclick="closeAnyModal()">Cancel</button>
-        <button class="btn primary" id="_modalSave">Save</button>
+        <button class="btn primary${opts.rwOk ? ' rw-ok' : ''}" id="_modalSave">${escape(opts.saveLabel || 'Save')}</button>
       </div>
     </div>
   `;
