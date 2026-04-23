@@ -931,6 +931,100 @@ hr { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
   font-size: 10px; font-weight: 600; letter-spacing: 0.03em;
   text-transform: uppercase;
 }
+
+/* ============================================================
+   AUTH / ROLE / READONLY (12-point rebuild)
+============================================================ */
+.auth-pw-wrap { display:none; margin-top:8px; }
+.auth-pw-wrap.show { display:block; }
+
+.role-badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 10px; font-weight: 700; letter-spacing: 0.06em;
+  text-transform: uppercase; padding: 2px 7px; border-radius: 100px;
+  margin-left: 6px;
+  background: var(--surface-2); color: var(--muted);
+}
+.role-badge.owner { background: linear-gradient(135deg, #C8131A, #8B0E13); color: white; }
+.role-badge.admin { background: var(--info-bg); color: var(--navy-700); }
+html.dark .role-badge.admin { color: var(--navy-300); }
+.role-badge.member { background: var(--surface-2); color: var(--muted); }
+
+/* Readonly mode — hide every edit affordance.
+   JS requireEdit() is the source of truth; this is visual only. */
+body.readonly-user .quick-add-fab,
+body.readonly-user .tb-action[onclick*="showShareURL"],
+body.readonly-user button.btn.primary,
+body.readonly-user button.btn.danger,
+body.readonly-user .pg-actions,
+body.readonly-user .camp-toggle,
+body.readonly-user .subtask-add,
+body.readonly-user .subtask-del,
+body.readonly-user button[onclick*="openNew"],
+body.readonly-user button[onclick*="openQuick"],
+body.readonly-user button[onclick*="edit"],
+body.readonly-user button[onclick*="delete"],
+body.readonly-user button[onclick*="remove"],
+body.readonly-user button[onclick*="accept"],
+body.readonly-user button[onclick*="reject"],
+body.readonly-user button[onclick*="addTaskLink"],
+body.readonly-user button[onclick*="addCampLink"],
+body.readonly-user button[onclick^="addMember"],
+body.readonly-user button[onclick^="addLabel"],
+body.readonly-user button[onclick^="addCategory"],
+body.readonly-user button[onclick^="addAdmin"],
+body.readonly-user button[onclick^="addSubtask"],
+body.readonly-user button[onclick*="openNewRequest"],
+body.readonly-user .sb-section-title > button {
+  display: none !important;
+}
+body.readonly-user .task-chk { pointer-events: none; opacity: 0.55; }
+body.readonly-user .who-chip { pointer-events: none; }
+body.readonly-user .who-chip:not(.sel) { opacity: 0.4; }
+body.readonly-user input.field, 
+body.readonly-user textarea.field, 
+body.readonly-user select.field {
+  pointer-events: none; opacity: 0.75; background: var(--surface-2);
+}
+body.readonly-user #tb-search { pointer-events: auto; opacity: 1; background: var(--surface-2); }
+body.readonly-user .drag-item input { pointer-events: none; }
+/* Re-enable comments so members can still leave comments (if intended) — DISABLED for now */
+body.readonly-user .readonly-show { display: inline-flex !important; }
+
+/* Drag sort visual */
+.drag-item[draggable="true"] { cursor: grab; }
+.drag-item.dragging { opacity: 0.4; border-style: dashed; }
+.drag-item.drag-over-top { border-top: 2px solid var(--navy-500); }
+.drag-item.drag-over-bottom { border-bottom: 2px solid var(--navy-500); }
+
+/* Link row (tasks + campaigns) */
+.link-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 8px; background: var(--surface); border: 1px solid var(--line);
+  border-radius: var(--r-sm); margin-bottom: 6px; font-size: 13px;
+}
+.link-row a {
+  flex: 1; min-width: 0; white-space: nowrap;
+  overflow: hidden; text-overflow: ellipsis;
+  color: var(--navy-600); text-decoration: none;
+}
+html.dark .link-row a { color: var(--navy-300); }
+.link-row a:hover { text-decoration: underline; }
+.link-row .link-icon {
+  width: 14px; height: 14px; flex-shrink: 0; color: var(--muted);
+}
+.link-form { display: grid; grid-template-columns: 1fr 2fr auto; gap: 6px; margin-top: 6px; }
+.link-form .field { padding: 5px 8px; font-size: 12px; }
+
+/* Admins section note */
+.note-muted {
+  font-size: 11px; color: var(--muted); padding: 4px 2px;
+  font-style: italic;
+}
+
+/* My Work empty state */
+.mywork-empty { padding: 2rem 1rem; }
+
 </style>
 </head>
 <body>
@@ -944,10 +1038,14 @@ hr { border: none; border-top: 1px solid var(--line); margin: 16px 0; }
     <h1 class="display">Sign in</h1>
     <div class="sub">Use your 1-Group work email to continue.</div>
     <input type="email" id="auth-email" placeholder="you@1-group.sg" autocomplete="email" autocapitalize="off" spellcheck="false">
+    <div class="auth-pw-wrap" id="auth-pw-wrap">
+      <input type="password" id="auth-pw" placeholder="Password" autocomplete="current-password">
+    </div>
     <button class="btn primary" onclick="doAuth()" style="width:100%;justify-content:center;padding:12px;margin-top:4px" id="auth-btn">Continue</button>
     <div class="msg" id="auth-msg"></div>
     <div class="note">
-      Access is restricted to <strong>@1-group.sg</strong> email addresses.
+      Access is restricted to <strong>@1-group.sg</strong> email addresses.<br>
+      <span style="font-size:11px">Owner + admin: edit access · Members: read-only</span>
     </div>
   </div>
 </div>

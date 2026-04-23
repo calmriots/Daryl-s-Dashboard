@@ -50,6 +50,9 @@ const S = {
   _syncTimer: null,
   _pollTimer: null,
   _revision: 0,
+  // --- 12-point rebuild additions ---
+  role: 'member',       // 'owner' | 'admin' | 'member' (resolved after bin load)
+  admins: [],           // array of @1-group.sg email strings (sub-admins)
 };
 
 const LS = {
@@ -61,6 +64,51 @@ const LS = {
 };
 
 const ALLOWED_DOMAIN = '1-group.sg';
+
+// --- AUTH TIERS ---------------------------------------------------
+// Owner always has the same email + password. Sub-admins are stored
+// in the shared bin and managed by the owner from Settings.
+const OWNER_EMAIL = 'daryl.xie@1-group.sg';
+const OWNER_PW_HASH = 'd66fd0ed243850fbe763e3464ecf2f780b1b073426c37af811a71372ef811110';
+
+async function sha256Hex(str) {
+  const enc = new TextEncoder().encode(str);
+  const buf = await crypto.subtle.digest('SHA-256', enc);
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+function requireEdit() {
+  if (S.role === 'owner' || S.role === 'admin') return true;
+  toast('Read-only mode — contact the owner for edit access', 'error');
+  return false;
+}
+function requireOwner() {
+  if (S.role === 'owner') return true;
+  toast('Owner permission required', 'error');
+  return false;
+}
+function applyRoleToUI() {
+  document.body.classList.toggle('readonly-user', S.role !== 'owner' && S.role !== 'admin');
+}
+function resolveRole() {
+  if (!S.currentUser) { S.role = 'member'; return; }
+  const e = (S.currentUser.email || '').toLowerCase();
+  if (e === OWNER_EMAIL) S.role = 'owner';
+  else if ((S.admins || []).map(x => (x||'').toLowerCase()).includes(e)) S.role = 'admin';
+  else S.role = 'member';
+  S.currentUser.role = S.role;
+  localStorage.setItem(LS.USER, JSON.stringify(S.currentUser));
+}
+function emailFromName(name) {
+  // Best-effort: 'Chef Jit Seng' -> 'chef.jit.seng@1-group.sg'
+  if (!name) return '';
+  const kebab = String(name).toLowerCase()
+    .replace(/[()]/g, '')
+    .replace(/[^a-z0-9]+/g, '.')
+    .replace(/^\.|\.$/g, '');
+  return kebab ? kebab + '@' + ALLOWED_DOMAIN : '';
+}
+
 
 // --- UTILITIES ----------------------------------------------------
 const $ = (sel, ctx=document) => ctx.querySelector(sel);
@@ -135,15 +183,16 @@ function colorForEmail(email) {
   return `hsl(${hue} 65% 52%)`;
 }
 
-function doAuth() {
+async function doAuth() {
   const input = $('#auth-email');
+  const pwInput = $('#auth-pw');
+  const pwWrap = $('#auth-pw-wrap');
   const msg = $('#auth-msg');
   const btn = $('#auth-btn');
   const raw = (input.value || '').trim().toLowerCase();
   msg.textContent = '';
 
   if (!raw) { msg.textContent = 'Please enter your work email.'; return; }
-  // basic shape check
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw)) {
     msg.textContent = 'That doesn’t look like a valid email.'; return;
   }
@@ -153,12 +202,41 @@ function doAuth() {
     return;
   }
 
+  // Owner flow — password required
+  if (raw === OWNER_EMAIL) {
+    // If password field isn't visible yet, show it and stop — user clicks again
+    if (!pwWrap.classList.contains('show')) {
+      pwWrap.classList.add('show');
+      setTimeout(() => pwInput.focus(), 40);
+      msg.textContent = '';
+      msg.style.color = 'var(--muted)';
+      msg.textContent = 'Owner sign-in — enter your password.';
+      return;
+    }
+    const pw = (pwInput.value || '');
+    if (!pw) { msg.textContent = 'Password required.'; msg.style.color = 'var(--danger)'; return; }
+    btn.disabled = true; btn.textContent = 'Verifying…';
+    try {
+      const hash = await sha256Hex(pw);
+      if (hash !== OWNER_PW_HASH) {
+        msg.textContent = 'Incorrect password.'; msg.style.color = 'var(--danger)';
+        btn.disabled = false; btn.textContent = 'Continue'; return;
+      }
+    } catch (e) {
+      msg.textContent = 'Could not verify password on this device.'; msg.style.color = 'var(--danger)';
+      btn.disabled = false; btn.textContent = 'Continue'; return;
+    }
+  }
+
+  const tentativeRole = raw === OWNER_EMAIL ? 'owner' : 'member';
   const user = {
     email: raw,
-    name: deriveNameFromEmail(raw),
+    name: raw === OWNER_EMAIL ? 'Daryl Xie' : deriveNameFromEmail(raw),
     color: colorForEmail(raw),
+    role: tentativeRole,
   };
   S.currentUser = user;
+  S.role = tentativeRole;
   localStorage.setItem(LS.USER, JSON.stringify(user));
 
   btn.disabled = true;
@@ -169,6 +247,9 @@ function showAuthGate() {
   $('#auth-screen').style.display = 'flex';
   $('#setup-screen').style.display = 'none';
   $('#app').classList.remove('active');
+  const pwWrap = $('#auth-pw-wrap'); if (pwWrap) pwWrap.classList.remove('show');
+  const pwInp = $('#auth-pw'); if (pwInp) pwInp.value = '';
+  const msg = $('#auth-msg'); if (msg) { msg.textContent = ''; msg.style.color = 'var(--danger)'; }
   const img = document.getElementById('auth-logo-img');
   if (img && window.LOGO_NAVY) img.src = window.LOGO_NAVY;
   setTimeout(() => { const i = $('#auth-email'); if (i) i.focus(); }, 40);
@@ -291,6 +372,7 @@ function initialPayload() {
       { id: uid(), name: 'Review',    color: '#F59E0B' },
     ],
     smartFilters: [],
+    admins: [],
     _revision: 0,
   };
 }
@@ -306,7 +388,10 @@ function hydrateState(record) {
     if (!m) continue;
     if (typeof m === 'string') {
       const id = 'tm-' + m.toLowerCase().replace(/[^a-z0-9]+/g,'-').replace(/^-|-$/g,'') || uid();
-      const member = { id, name: m, role: '', color: palette[pi++ % palette.length] };
+      const member = {
+        id, name: m, email: emailFromName(m),
+        role: '', color: palette[pi++ % palette.length]
+      };
       team.push(member);
       teamByName[m.toLowerCase()] = id;
     } else if (typeof m === 'object') {
@@ -316,6 +401,7 @@ function hydrateState(record) {
       if (!m.name) m.name = 'Unknown';
       if (!m.color) m.color = palette[pi++ % palette.length];
       if (!m.role) m.role = '';
+      if (!m.email) m.email = emailFromName(m.name);
       team.push(m);
       teamByName[m.name.toLowerCase()] = m.id;
     }
@@ -455,7 +541,16 @@ function hydrateState(record) {
 
   S.labels = record.labels || [];
   S.smartFilters = record.smartFilters || [];
+  S.admins = Array.isArray(record.admins) ? record.admins.slice() : [];
   S._revision = record._revision || 0;
+
+  // Ensure links array exists on tasks + campaigns
+  for (const t of S.tasks) if (!Array.isArray(t.links)) t.links = [];
+  for (const c of S.campaigns) if (!Array.isArray(c.links)) c.links = [];
+
+  // Resolve the signed-in user's role against the loaded admin list
+  resolveRole();
+  applyRoleToUI();
 }
 
 function serializeState() {
@@ -467,6 +562,7 @@ function serializeState() {
     requests: S.requests,
     labels: S.labels,
     smartFilters: S.smartFilters,
+    admins: S.admins || [],
     _revision: (S._revision || 0) + 1,
   };
 }
@@ -603,6 +699,7 @@ function startApp() {
     $('#sidebar').classList.add('collapsed');
   }
   applyTheme();
+  applyRoleToUI();
   updateSyncIndicator('on');
 
   // start polling for remote updates
@@ -631,6 +728,19 @@ function updateUserBadge() {
 }
 
 // --- SIDEBAR ----------
+function myWorkCount() {
+  if (!S.currentUser) return 0;
+  let myId = S.currentUser.id;
+  if (!myId) {
+    const match = S.team.find(m =>
+      (m.email && m.email.toLowerCase() === (S.currentUser.email||'').toLowerCase()) ||
+      m.name === S.currentUser.name);
+    if (match) myId = match.id;
+  }
+  if (!myId) return 0;
+  return S.tasks.filter(t => t.status !== 'done' && (t.assignees||[]).includes(myId)).length;
+}
+
 function renderSidebar() {
   const c = $('#sb-scroll');
   const todayCount = S.tasks.filter(t => t.status !== 'done' && (isToday(t.due) || isOverdue(t.due, t.status))).length;
@@ -651,6 +761,7 @@ function renderSidebar() {
   let html = '';
 
   html += nav('today', svgIcon('sun'), 'Today', todayCount, todayCount > 0);
+  html += nav('my-work', svgIcon('star'), 'My work', myWorkCount(), false);
   html += nav('upcoming', svgIcon('calendar'), 'Upcoming', upcomingCount);
   html += nav('inbox', svgIcon('inbox'), 'Inbox', inboxCount);
   html += nav('calendar', svgIcon('cal-month'), 'Calendar', 0);
@@ -717,6 +828,7 @@ function renderContent() {
   $('#tb-title').textContent = viewTitle();
 
   if (v === 'today') c.innerHTML = renderToday();
+  else if (v === 'my-work') c.innerHTML = renderMyWork();
   else if (v === 'upcoming') c.innerHTML = renderUpcoming();
   else if (v === 'inbox') c.innerHTML = renderInbox();
   else if (v === 'calendar') c.innerHTML = renderCalendar();
@@ -736,7 +848,7 @@ function renderContent() {
 
 function viewTitle() {
   const map = {
-    today: 'Today', upcoming: 'Upcoming', inbox: 'Inbox', calendar: 'Calendar',
+    today: 'Today', 'my-work': 'My work', upcoming: 'Upcoming', inbox: 'Inbox', calendar: 'Calendar',
     requests: 'Requests', dashboard: 'Dashboard', campaigns: 'Campaigns',
     'priority-high': 'High priority', 'all-tasks': 'All tasks', 'completed': 'Completed'
   };
@@ -795,7 +907,7 @@ function taskRowHTML(t, opts={}) {
         </div>
         ${descPreview}
         <div class="task-meta">
-          ${whoChips}${moreWho}${campChip}${labelChips}${subChip}
+          ${whoChips}${moreWho}${campChip}${labelChips}${subChip}${(t.links&&t.links.length)?`<span class="chip" title="${t.links.length} link(s)">🔗 ${t.links.length}</span>`:""}
         </div>
       </div>
       ${dueLabel?`<div class="task-due ${dueClass}">${dueLabel}</div>`:''}
@@ -882,6 +994,7 @@ function taskExpandedHTML(t) {
       <textarea class="field" placeholder="Add notes, context, markdown, links…" rows="3"
         oninput="updateTaskField('${t.id}','notes',this.value,true)">${escape(t.notes||'')}</textarea>
 
+      ${taskLinksHTML(t)}
       <div class="exp-label" style="margin-top:14px">Sub-tasks</div>
       <div class="subtasks">
         ${subtaskRows}
@@ -1188,6 +1301,10 @@ function campaignCardHTML(camp, allowExpand=true) {
           <div class="camp-sub">${camp.startDate||'—'} → ${camp.endDate||'—'}</div>
           ${camp.description?`<div class="camp-desc">${escape(camp.description)}</div>`:''}
           <div class="camp-progress"><div class="camp-progress-fill" style="width:${pct}%"></div></div>
+          ${(camp.links&&camp.links.length) ? `<div class="row" style="margin-top:8px;gap:6px">
+            ${camp.links.slice(0,3).map(l => `<a href="${escape(l.url)}" target="_blank" rel="noopener" class="chip" style="text-decoration:none">🔗 ${escape(l.label || l.url)}</a>`).join('')}
+            ${camp.links.length > 3 ? `<span class="chip">+${camp.links.length-3}</span>` : ''}
+          </div>` : ''}
           <div class="camp-footer">
             <span>${done}/${tasks.length} tasks · ${pct}%</span>
             <div class="row">
@@ -1337,6 +1454,7 @@ function renderSmart() {
 //                    MUTATIONS
 // ============================================================
 function toggleTask(id) {
+  if (!requireEdit()) return;
   const t = S.tasks.find(x=>x.id===id); if (!t) return;
   const wasDone = t.status === 'done';
   t.status = wasDone ? 'not_started' : 'done';
@@ -1361,6 +1479,7 @@ function toggleCampExpand(id) {
 }
 
 function updateTaskField(id, field, value, skipRender=false) {
+  if (!requireEdit()) return;
   const t = S.tasks.find(x=>x.id===id); if (!t) return;
   t[field] = value;
   scheduleSync();
@@ -1368,6 +1487,7 @@ function updateTaskField(id, field, value, skipRender=false) {
 }
 
 function toggleAssignee(tid, uid) {
+  if (!requireEdit()) return;
   const t = S.tasks.find(x=>x.id===tid); if (!t) return;
   t.assignees = t.assignees || [];
   const i = t.assignees.indexOf(uid);
@@ -1376,6 +1496,7 @@ function toggleAssignee(tid, uid) {
 }
 
 function toggleLabel(tid, lid) {
+  if (!requireEdit()) return;
   const t = S.tasks.find(x=>x.id===tid); if (!t) return;
   t.labels = t.labels || [];
   const i = t.labels.indexOf(lid);
@@ -1384,30 +1505,35 @@ function toggleLabel(tid, lid) {
 }
 
 function addSubtask(tid) {
+  if (!requireEdit()) return;
   const t = S.tasks.find(x=>x.id===tid); if (!t) return;
   t.subtasks = t.subtasks || [];
   t.subtasks.push({ id: uid(), name: 'New sub-task', done: false });
   scheduleSync(); render();
 }
 function toggleSubtask(tid, sid) {
+  if (!requireEdit()) return;
   const t = S.tasks.find(x=>x.id===tid); if (!t) return;
   const s = (t.subtasks||[]).find(x=>x.id===sid); if (!s) return;
   s.done = !s.done;
   scheduleSync(); render();
 }
 function renameSubtask(tid, sid, name) {
+  if (!requireEdit()) return;
   const t = S.tasks.find(x=>x.id===tid); if (!t) return;
   const s = (t.subtasks||[]).find(x=>x.id===sid); if (!s) return;
   s.name = name;
   scheduleSync();
 }
 function deleteSubtask(tid, sid) {
+  if (!requireEdit()) return;
   const t = S.tasks.find(x=>x.id===tid); if (!t) return;
   t.subtasks = (t.subtasks||[]).filter(x=>x.id!==sid);
   scheduleSync(); render();
 }
 
 function addComment(tid, text) {
+  if (!requireEdit()) return;
   if (!text.trim()) return;
   const t = S.tasks.find(x=>x.id===tid); if (!t) return;
   t.comments = t.comments || [];
@@ -1416,6 +1542,7 @@ function addComment(tid, text) {
 }
 
 function deleteTask(tid) {
+  if (!requireEdit()) return;
   if (!confirm('Delete this task?')) return;
   S.tasks = S.tasks.filter(t => t.id !== tid);
   S.expandedTasks.delete(tid);
@@ -1428,6 +1555,7 @@ function attachInlineEdits() {
 
 // ---- Quick add ----
 function openQuickAdd(campId) {
+  if (!requireEdit()) return;
   $('#qa-modal').classList.add('open');
   $('#qa-name').value = '';
   $('#qa-due').value = '';
@@ -1444,6 +1572,7 @@ function openQuickAdd(campId) {
 }
 function closeQuickAdd() { $('#qa-modal').classList.remove('open'); }
 function saveQuickAdd() {
+  if (!requireEdit()) return;
   const name = $('#qa-name').value.trim();
   if (!name) { toast('Task name required', 'error'); return; }
   S.tasks.push({
@@ -1466,6 +1595,7 @@ function saveQuickAdd() {
 
 // ---- Campaigns ----
 function openNewCampaign(e) {
+  if (!requireEdit()) return;
   if (e) e.stopPropagation();
   const modal = makeModal('New campaign', `
     <div class="exp-label">Name</div>
@@ -1498,6 +1628,7 @@ function openNewCampaign(e) {
 }
 
 function editCampaign(id) {
+  if (!requireEdit()) return;
   const c = S.campaigns.find(x=>x.id===id); if (!c) return;
   makeModal('Edit campaign', `
     <div class="exp-label">Name</div>
@@ -1510,6 +1641,14 @@ function editCampaign(id) {
     </div>
     <div class="exp-label">Description</div>
     <textarea id="ec-desc" class="field" rows="3">${escape(c.description||'')}</textarea>
+
+    <div class="exp-label" style="margin-top:14px">Links</div>
+    ${campLinksHTML(c)}
+    <div class="link-form">
+      <input class="field" placeholder="Label" id="cllbl-${c.id}">
+      <input class="field" placeholder="https://…" id="clurl-${c.id}">
+      <button class="btn sm" onclick="addCampLink('${c.id}')">Add</button>
+    </div>
     <hr>
     <button class="btn danger sm" onclick="deleteCampaign('${c.id}')">Delete campaign</button>
   `, () => {
@@ -1524,6 +1663,7 @@ function editCampaign(id) {
 }
 
 function deleteCampaign(id) {
+  if (!requireEdit()) return;
   if (!confirm('Delete this campaign and all its tasks?')) return;
   S.campaigns = S.campaigns.filter(c => c.id !== id);
   S.tasks = S.tasks.filter(t => t.campaignId !== id);
@@ -1560,6 +1700,7 @@ function openNewRequest() {
 }
 
 function acceptRequest(id) {
+  if (!requireEdit()) return;
   const r = S.requests.find(x=>x.id===id); if (!r) return;
   r.status = 'accepted';
   S.tasks.push({
@@ -1577,17 +1718,20 @@ function acceptRequest(id) {
   toast('Task created','success');
 }
 function rejectRequest(id) {
+  if (!requireEdit()) return;
   const r = S.requests.find(x=>x.id===id); if (!r) return;
   r.status = 'rejected';
   scheduleSync(); render();
 }
 function deleteRequest(id) {
+  if (!requireEdit()) return;
   S.requests = S.requests.filter(r => r.id !== id);
   scheduleSync(); render();
 }
 
 // ---- Smart filter ----
 function openNewSmartFilter(e) {
+  if (!requireEdit()) return;
   if (e) e.stopPropagation();
   makeModal('New smart list', `
     <div class="exp-label">Name</div>
@@ -1603,6 +1747,7 @@ function openNewSmartFilter(e) {
   });
 }
 function deleteSmartFilter(id) {
+  if (!requireEdit()) return;
   if (!confirm('Delete this smart list?')) return;
   S.smartFilters = S.smartFilters.filter(f => f.id !== id);
   S.view = 'today';
@@ -1649,82 +1794,144 @@ function closeSettings() {
 
 function renderSettings() {
   const body = $('#settings-body');
+  const isOwner = S.role === 'owner';
+  const canEdit = isOwner || S.role === 'admin';
   body.innerHTML = `
-    <div class="sh"><span>Team</span><span class="line"></span><button class="btn xs" onclick="addMember()">+ Add</button></div>
+    <div class="sh"><span>Your role</span><span class="line"></span></div>
+    <div class="drag-item" style="cursor:default">
+      <div class="sb-avatar" style="width:28px;height:28px;font-size:11px;background:${(S.currentUser&&S.currentUser.color)||'var(--navy-500)'}">${initials((S.currentUser&&S.currentUser.name)||'?')}</div>
+      <div style="flex:1;min-width:0">
+        <div style="font-weight:600;font-size:13px">${escape((S.currentUser&&S.currentUser.name)||'—')}
+          <span class="role-badge ${S.role||'member'}">${S.role||'member'}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace">${escape((S.currentUser&&S.currentUser.email)||'')}</div>
+      </div>
+    </div>
+
+    <div class="sh" style="margin-top:1.5rem"><span>Team</span><span class="line"></span>${canEdit?'<button class="btn xs" onclick="addMember()">+ Add</button>':''}</div>
     <div id="team-list">
       ${S.team.map(m => `
         <div class="drag-item" data-id="${m.id}">
           <span class="drag-handle">⠿</span>
           <div class="sb-avatar" style="width:24px;height:24px;font-size:10px;background:${m.color||'var(--navy-500)'}">${initials(m.name)}</div>
-          <div style="flex:1">
-            <input class="field" value="${escape(m.name)}" style="border:none;background:transparent;padding:2px;font-size:13px;font-weight:600" onchange="S.team.find(x=>x.id==='${m.id}').name=this.value;scheduleSync();render()">
-            <input class="field" value="${escape(m.role||'')}" style="border:none;background:transparent;padding:2px;font-size:11px;color:var(--muted)" onchange="S.team.find(x=>x.id==='${m.id}').role=this.value;scheduleSync()">
+          <div style="flex:1;min-width:0">
+            <input class="field" value="${escape(m.name)}" style="border:none;background:transparent;padding:2px;font-size:13px;font-weight:600" onchange="updateMemberField('${m.id}','name',this.value)">
+            <input class="field" value="${escape(m.email||'')}" style="border:none;background:transparent;padding:2px;font-size:11px;color:var(--muted);font-family:'JetBrains Mono',monospace" placeholder="email@${ALLOWED_DOMAIN}" onchange="updateMemberField('${m.id}','email',this.value)">
+            <input class="field" value="${escape(m.role||'')}" style="border:none;background:transparent;padding:2px;font-size:11px;color:var(--muted)" placeholder="Role" onchange="updateMemberField('${m.id}','role',this.value)">
           </div>
           <button class="btn xs danger" onclick="removeMember('${m.id}')">×</button>
         </div>
       `).join('')}
     </div>
 
-    <div class="sh" style="margin-top:1.5rem"><span>Labels</span><span class="line"></span><button class="btn xs" onclick="addLabel()">+ Add</button></div>
-    <div>
+    ${isOwner ? `
+      <div class="sh" style="margin-top:1.5rem"><span>Admins</span><span class="line"></span><button class="btn xs" onclick="addAdmin()">+ Add</button></div>
+      <div>
+        ${(S.admins||[]).map(e => `
+          <div class="drag-item" style="cursor:default">
+            <span class="drag-handle" style="opacity:0">⠿</span>
+            <span style="flex:1;font-family:'JetBrains Mono',monospace;font-size:12px">${escape(e)}</span>
+            <button class="btn xs danger" onclick="removeAdmin('${escape(e)}')">×</button>
+          </div>
+        `).join('') || '<div class="note-muted">No sub-admins yet. Add a teammate’s @1-group.sg email to grant edit access.</div>'}
+      </div>
+      <div class="note-muted">Owner and admins can edit. Other @1-group.sg members have read-only access.</div>
+    ` : ''}
+
+    <div class="sh" style="margin-top:1.5rem"><span>Labels</span><span class="line"></span>${canEdit?'<button class="btn xs" onclick="addLabel()">+ Add</button>':''}</div>
+    <div id="labels-list">
       ${S.labels.map(l => `
-        <div class="drag-item">
-          <input type="color" value="${l.color}" style="width:24px;height:24px;border:none;background:transparent;padding:0" onchange="S.labels.find(x=>x.id==='${l.id}').color=this.value;scheduleSync();render()">
-          <input class="field" value="${escape(l.name)}" style="flex:1;border:none;background:transparent;padding:2px;font-size:13px" onchange="S.labels.find(x=>x.id==='${l.id}').name=this.value;scheduleSync();render()">
+        <div class="drag-item" data-id="${l.id}">
+          <span class="drag-handle">⠿</span>
+          <input type="color" value="${l.color}" style="width:24px;height:24px;border:none;background:transparent;padding:0" onchange="updateLabelField('${l.id}','color',this.value)">
+          <input class="field" value="${escape(l.name)}" style="flex:1;border:none;background:transparent;padding:2px;font-size:13px" onchange="updateLabelField('${l.id}','name',this.value)">
           <button class="btn xs danger" onclick="removeLabel('${l.id}')">×</button>
         </div>
       `).join('')}
     </div>
 
-    <div class="sh" style="margin-top:1.5rem"><span>Categories</span><span class="line"></span><button class="btn xs" onclick="addCategory()">+ Add</button></div>
-    <div>
+    <div class="sh" style="margin-top:1.5rem"><span>Categories</span><span class="line"></span>${canEdit?'<button class="btn xs" onclick="addCategory()">+ Add</button>':''}</div>
+    <div id="categories-list">
       ${S.categories.map(c => `
-        <div class="drag-item">
-          <input type="color" value="${c.color}" style="width:24px;height:24px;border:none;background:transparent;padding:0" onchange="S.categories.find(x=>x.id==='${c.id}').color=this.value;scheduleSync();render()">
-          <input class="field" value="${escape(c.name)}" style="flex:1;border:none;background:transparent;padding:2px;font-size:13px" onchange="S.categories.find(x=>x.id==='${c.id}').name=this.value;scheduleSync();render()">
+        <div class="drag-item" data-id="${c.id}">
+          <span class="drag-handle">⠿</span>
+          <input type="color" value="${c.color}" style="width:24px;height:24px;border:none;background:transparent;padding:0" onchange="updateCategoryField('${c.id}','color',this.value)">
+          <input class="field" value="${escape(c.name)}" style="flex:1;border:none;background:transparent;padding:2px;font-size:13px" onchange="updateCategoryField('${c.id}','name',this.value)">
           <button class="btn xs danger" onclick="removeCategory('${c.id}')">×</button>
         </div>
       `).join('')}
     </div>
 
     <div class="sh" style="margin-top:1.5rem"><span>Workspace</span><span class="line"></span></div>
-    <div class="drag-item">
+    <div class="drag-item" style="cursor:default">
       <span style="flex:1">Share link</span>
       <button class="btn xs" onclick="showShareURL()">Copy</button>
     </div>
-    <div class="drag-item">
+    <div class="drag-item" style="cursor:default">
       <span style="flex:1">Sign out</span>
       <button class="btn xs danger" onclick="signOut()">Forget key</button>
     </div>
   `;
+
+  // Wire up drag-sort (only if user can edit)
+  if (canEdit) {
+    enableDragSort('#team-list', S.team, () => { scheduleSync(); renderSettings(); render(); });
+    enableDragSort('#labels-list', S.labels, () => { scheduleSync(); renderSettings(); render(); });
+    enableDragSort('#categories-list', S.categories, () => { scheduleSync(); renderSettings(); render(); });
+  }
+}
+
+function updateMemberField(id, field, value) {
+  if (!requireEdit()) return;
+  const m = S.team.find(x => x.id === id); if (!m) return;
+  m[field] = value;
+  scheduleSync(); render();
+}
+function updateLabelField(id, field, value) {
+  if (!requireEdit()) return;
+  const l = S.labels.find(x => x.id === id); if (!l) return;
+  l[field] = value;
+  scheduleSync(); render();
+}
+function updateCategoryField(id, field, value) {
+  if (!requireEdit()) return;
+  const c = S.categories.find(x => x.id === id); if (!c) return;
+  c[field] = value;
+  scheduleSync(); render();
 }
 
 function addMember() {
+  if (!requireEdit()) return;
   const name = prompt('Team member name?'); if (!name) return;
   S.team.push({ id: uid(), name, role: '', color: '#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0') });
   scheduleSync(); renderSettings(); render();
 }
 function removeMember(id) {
+  if (!requireEdit()) return;
   if (!confirm('Remove this member?')) return;
   S.team = S.team.filter(m => m.id !== id);
   scheduleSync(); renderSettings(); render();
 }
 function addLabel() {
+  if (!requireEdit()) return;
   const name = prompt('Label name?'); if (!name) return;
   S.labels.push({ id: uid(), name, color: '#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0') });
   scheduleSync(); renderSettings(); render();
 }
 function removeLabel(id) {
+  if (!requireEdit()) return;
   S.labels = S.labels.filter(l => l.id !== id);
   for (const t of S.tasks) t.labels = (t.labels||[]).filter(x=>x!==id);
   scheduleSync(); renderSettings(); render();
 }
 function addCategory() {
+  if (!requireEdit()) return;
   const name = prompt('Category name?'); if (!name) return;
   S.categories.push({ id: uid(), name, color: '#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'), icon: '' });
   scheduleSync(); renderSettings(); render();
 }
 function removeCategory(id) {
+  if (!requireEdit()) return;
   if (!confirm('Remove category?')) return;
   S.categories = S.categories.filter(c => c.id !== id);
   scheduleSync(); renderSettings(); render();
@@ -1736,6 +1943,208 @@ function signOut() {
   localStorage.removeItem(LS.BIN);
   localStorage.removeItem(LS.USER);
   location.reload();
+}
+
+// ============================================================
+//                    MY WORK VIEW
+// ============================================================
+function renderMyWork() {
+  const me = S.currentUser;
+  if (!me) return '<div class="empty">Sign in to see your work.</div>';
+
+  // Resolve my team id (may need backfill if not set)
+  let myId = me.id;
+  if (!myId) {
+    const match = S.team.find(m =>
+      (m.email && m.email.toLowerCase() === (me.email||'').toLowerCase()) ||
+      m.name === me.name);
+    if (match) { myId = match.id; me.id = match.id; }
+  }
+
+  const my = S.tasks.filter(t => myId && (t.assignees||[]).includes(myId));
+  const open = my.filter(t => t.status !== 'done');
+  const overdue = open.filter(t => isOverdue(t.due, t.status));
+  const dueToday = open.filter(t => isToday(t.due));
+  const upcoming = open.filter(t => !isOverdue(t.due, t.status) && !isToday(t.due) && t.due);
+  const noDate = open.filter(t => !t.due);
+  const doneRecent = my.filter(t => t.status === 'done').slice(-12).reverse();
+
+  const section = (label, list, extra='') =>
+    list.length ? `
+      <div class="sh"><span>${label}</span><span class="line"></span><span class="muted" style="font-size:11px">${list.length}</span></div>
+      <div class="card" style="padding:0">${list.map(t=>taskRowHTML(t)).join('')}</div>
+    ` : '';
+
+  const body = open.length || doneRecent.length ? (
+    section('⚠ Overdue', overdue) +
+    section('Due today', dueToday) +
+    section('Upcoming', upcoming) +
+    section('No due date', noDate) +
+    (doneRecent.length ? `
+      <div class="sh" style="margin-top:1.5rem"><span>Recently completed</span><span class="line"></span></div>
+      <div class="card" style="padding:0">${doneRecent.map(t=>taskRowHTML(t)).join('')}</div>
+    ` : '')
+  ) : `<div class="empty mywork-empty"><div class="empty-icon">✨</div>Nothing assigned to you right now.</div>`;
+
+  return `
+    <div class="pg-header">
+      <div>
+        <h1 class="display">My work</h1>
+        <div class="pg-sub">Tasks assigned to ${escape(me.name)} · ${open.length} open</div>
+      </div>
+      ${S.role === 'owner' || S.role === 'admin' ? '<div class="pg-actions"><button class="btn primary" onclick="openQuickAdd()">+ New task</button></div>' : ''}
+    </div>
+
+    <div class="metrics">
+      <div class="met ${overdue.length?'attn':''}"><div class="ml">Overdue</div><div class="mv">${overdue.length}</div></div>
+      <div class="met"><div class="ml">Due today</div><div class="mv">${dueToday.length}</div></div>
+      <div class="met"><div class="ml">Open</div><div class="mv">${open.length}</div></div>
+      <div class="met"><div class="ml">Completed</div><div class="mv">${my.filter(t=>t.status==='done').length}</div></div>
+    </div>
+
+    ${body}
+  `;
+}
+
+// ============================================================
+//                    LINKS (tasks + campaigns)
+// ============================================================
+function taskLinksHTML(t) {
+  const rows = (t.links||[]).map((l, i) => `
+    <div class="link-row">
+      <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      <a href="${escape(l.url)}" target="_blank" rel="noopener">${escape(l.label || l.url)}</a>
+      <button class="btn xs danger" onclick="removeTaskLink('${t.id}',${i})" title="Remove">×</button>
+    </div>
+  `).join('');
+  return `
+    <div class="exp-label" style="margin-top:14px">Links</div>
+    <div id="tlinks-${t.id}">${rows || '<div class="muted" style="font-size:12px">No links yet.</div>'}</div>
+    <div class="link-form">
+      <input class="field" placeholder="Label" id="tlbl-${t.id}">
+      <input class="field" placeholder="https://…" id="turl-${t.id}">
+      <button class="btn sm" onclick="addTaskLink('${t.id}')">Add</button>
+    </div>
+  `;
+}
+function addTaskLink(tid) {
+  if (!requireEdit()) return;
+  const t = S.tasks.find(x=>x.id===tid); if (!t) return;
+  const url = ($('#turl-'+tid) || {}).value; const label = ($('#tlbl-'+tid) || {}).value;
+  if (!url || !url.trim()) { toast('URL required','error'); return; }
+  let u = url.trim();
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  t.links = t.links || [];
+  t.links.push({ label: (label||'').trim() || u, url: u });
+  scheduleSync(); render();
+}
+function removeTaskLink(tid, idx) {
+  if (!requireEdit()) return;
+  const t = S.tasks.find(x=>x.id===tid); if (!t) return;
+  (t.links||[]).splice(idx, 1);
+  scheduleSync(); render();
+}
+function addCampLink(cid) {
+  if (!requireEdit()) return;
+  const c = S.campaigns.find(x=>x.id===cid); if (!c) return;
+  const url = ($('#clurl-'+cid) || {}).value; const label = ($('#cllbl-'+cid) || {}).value;
+  if (!url || !url.trim()) { toast('URL required','error'); return; }
+  let u = url.trim();
+  if (!/^https?:\/\//i.test(u)) u = 'https://' + u;
+  c.links = c.links || [];
+  c.links.push({ label: (label||'').trim() || u, url: u });
+  scheduleSync(); render();
+  // refresh modal if open
+  const host = $('#clinks-'+cid); if (host) host.outerHTML = campLinksHTML(c);
+}
+function removeCampLink(cid, idx) {
+  if (!requireEdit()) return;
+  const c = S.campaigns.find(x=>x.id===cid); if (!c) return;
+  (c.links||[]).splice(idx, 1);
+  scheduleSync(); render();
+  const host = $('#clinks-'+cid); if (host) host.outerHTML = campLinksHTML(c);
+}
+function campLinksHTML(c) {
+  const rows = (c.links||[]).map((l, i) => `
+    <div class="link-row">
+      <svg class="link-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+      <a href="${escape(l.url)}" target="_blank" rel="noopener">${escape(l.label || l.url)}</a>
+      <button class="btn xs danger" onclick="removeCampLink('${c.id}',${i})" title="Remove">×</button>
+    </div>
+  `).join('');
+  return `<div id="clinks-${c.id}">${rows || '<div class="muted" style="font-size:12px">No links yet.</div>'}</div>`;
+}
+
+// ============================================================
+//                    ADMINS (owner only)
+// ============================================================
+function addAdmin() {
+  if (!requireOwner()) return;
+  const raw = prompt('Admin email (@' + ALLOWED_DOMAIN + '):');
+  if (!raw) return;
+  const e = raw.trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(e)) { toast('Invalid email','error'); return; }
+  if (e.split('@')[1] !== ALLOWED_DOMAIN) { toast('Must be @' + ALLOWED_DOMAIN,'error'); return; }
+  if (e === OWNER_EMAIL) { toast('Owner is already privileged','info'); return; }
+  S.admins = S.admins || [];
+  if (S.admins.map(x => (x||'').toLowerCase()).includes(e)) { toast('Already an admin','info'); return; }
+  S.admins.push(e);
+  scheduleSync(); renderSettings(); toast('Admin added','success');
+}
+function removeAdmin(email) {
+  if (!requireOwner()) return;
+  if (!confirm('Remove ' + email + ' as admin?')) return;
+  S.admins = (S.admins || []).filter(x => (x||'').toLowerCase() !== (email||'').toLowerCase());
+  scheduleSync(); renderSettings();
+}
+
+// ============================================================
+//                    DRAG-SORT HELPER
+// ============================================================
+function enableDragSort(containerSel, arr, onDone) {
+  const container = document.querySelector(containerSel);
+  if (!container) return;
+  const items = Array.from(container.querySelectorAll(':scope > [data-id]'));
+  let dragging = null;
+  items.forEach(el => {
+    el.setAttribute('draggable', 'true');
+    el.addEventListener('dragstart', (e) => {
+      dragging = el;
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+      try { e.dataTransfer.setData('text/plain', el.dataset.id); } catch(_){}
+    });
+    el.addEventListener('dragend', () => {
+      if (dragging) dragging.classList.remove('dragging');
+      items.forEach(x => x.classList.remove('drag-over-top','drag-over-bottom'));
+      // rebuild order
+      const order = Array.from(container.querySelectorAll(':scope > [data-id]')).map(x => x.dataset.id);
+      const byId = new Map(arr.map(x => [x.id, x]));
+      arr.length = 0;
+      for (const id of order) { const obj = byId.get(id); if (obj) arr.push(obj); }
+      dragging = null;
+      if (onDone) onDone();
+    });
+    el.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      if (!dragging || dragging === el) return;
+      const rect = el.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      el.classList.toggle('drag-over-top', e.clientY < mid);
+      el.classList.toggle('drag-over-bottom', e.clientY >= mid);
+    });
+    el.addEventListener('dragleave', () => {
+      el.classList.remove('drag-over-top','drag-over-bottom');
+    });
+    el.addEventListener('drop', (e) => {
+      e.preventDefault();
+      if (!dragging || dragging === el) return;
+      const rect = el.getBoundingClientRect();
+      const mid = rect.top + rect.height / 2;
+      if (e.clientY < mid) container.insertBefore(dragging, el);
+      else container.insertBefore(dragging, el.nextSibling);
+    });
+  });
 }
 
 // ============================================================
@@ -1760,12 +2169,14 @@ window.addEventListener('DOMContentLoaded', () => {
   }
   if (savedUser && savedUser.email && savedUser.email.endsWith('@' + ALLOWED_DOMAIN)) {
     S.currentUser = savedUser;
+    // Tentative role from saved state — final role resolves after bin load
+    S.role = savedUser.role || (savedUser.email.toLowerCase() === OWNER_EMAIL ? 'owner' : 'member');
   } else {
     // no valid user → show gate, stop here
     showAuthGate();
     // still wire Enter handler on auth input
     $('#auth-email').addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(); });
-    // and wire Enter on sc-key for when they continue
+    $('#auth-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(); });
     $('#sc-key').addEventListener('keydown', e => { if (e.key === 'Enter') doSetup(); });
     return;
   }
@@ -1804,6 +2215,7 @@ window.addEventListener('DOMContentLoaded', () => {
   // handle Enter in setup + auth
   $('#sc-key').addEventListener('keydown', e => { if (e.key === 'Enter') doSetup(); });
   $('#auth-email').addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(); });
+  $('#auth-pw').addEventListener('keydown', e => { if (e.key === 'Enter') doAuth(); });
 
   // QA modal Enter
   document.addEventListener('keydown', e => {
@@ -1826,5 +2238,10 @@ Object.assign(window, {
   openNewSmartFilter, deleteSmartFilter,
   openSettings, closeSettings, closeMobileSidebar,
   addMember, removeMember, addLabel, removeLabel, addCategory, removeCategory, signOut,
-  calNav, closeAnyModal
+  calNav, closeAnyModal,
+  // 12-point additions
+  addAdmin, removeAdmin,
+  addTaskLink, removeTaskLink, addCampLink, removeCampLink,
+  updateMemberField, updateLabelField, updateCategoryField,
+  renderMyWork, myWorkCount,
 });
